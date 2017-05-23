@@ -5,7 +5,7 @@ from MACRO_DEFINE import *
 
 config = {
     # LTE:1 ;WCDMA:2
-    "TEST_RF"   :   (1,),
+    "TEST_RF"   :   (2,1),
     'LTE' : {
         # 测试 Band
         'band'  :   (1,3,5,7,8,39,40,41),
@@ -15,7 +15,7 @@ config = {
         # 高中低信道
         'lmh'   :   (1,1,1),
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,2,),
+        'test_item'     :   (1,2,3),
         'data_save'     :   r"./test_data_l.txt",
     },
     'WCDMA' :{

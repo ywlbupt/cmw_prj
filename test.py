@@ -515,11 +515,11 @@ class handle_instr():
             self.instr_write("CONFigure:WCDMa:SIGN:CARRier:BAND {0}".format(test_list[0][0]))
             self.instr_write("CONFigure:WCDMa:SIGN:RFSettings:CARRier:CHANnel:UL {0}".format(test_list[0][1]))
             self.instr_write("CONFigure:WCDMa:SIGN:CONNection:TMODe:RMC:TMODe MODE2")
-            self.instr_write("SOURce:WCDMa:SIGN:CELL:STATe ON")
-            while self.instr_query("SOUR:WCDM:SIGN:CELL:STAT:ALL?").strip()!="ON,ADJ":
-                time.sleep(1)
-            print("Cell initialling done")
         self.instr_write("ROUTe:WCDMa:MEAS:SCENario:CSPath 'WCDMA Sig1'")
+        self.instr_write("SOURce:WCDMa:SIGN:CELL:STATe ON")
+        while self.instr_query("SOUR:WCDM:SIGN:CELL:STAT:ALL?").strip()!="ON,ADJ":
+            time.sleep(1)
+        print("Cell initialling done")
         self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:REPetition SINGleshot")
         self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:SCOunt:SPECtrum 10")
         self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:SCOunt:MODulation 10")
@@ -681,14 +681,14 @@ class handle_instr():
 
     
     def test(self, md="LTE"):
-        def test_lte(self):
+        def test_lte():
             self.set_FDCorrection(param_FDCorrection)
             self.LTE_para_configure(TEST_LIST_L)
             self.LW_connect(md="LTE")
             mea_item = [test_item_map[i] for i in config['LTE']['test_item']]
             self.LTE_ch_travel(TEST_LIST_L,mea_item=mea_item)
 
-        def test_wcdma(self):
+        def test_wcdma():
             self.set_FDCorrection(param_FDCorrection)
             self.WCDMA_para_configure(TEST_LIST_W)
             self.LW_connect(md="WCDMA")
