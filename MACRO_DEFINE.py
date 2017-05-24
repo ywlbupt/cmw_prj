@@ -5,6 +5,7 @@ from collections import namedtuple
 
 ue_struct_l = namedtuple("ue_struct_l",['BAND','CH_UL','CH_DL','BW'])
 ue_struct_w = namedtuple("ue_struct_w",['w_BAND','w_CH_UL','w_CH_DL'])
+ue_struct_g = namedtuple("ue_struct_g",['g_BAND','g_CH'])
 
 LTE_BW_5="B050"
 LTE_BW_10="B100"
@@ -12,8 +13,10 @@ LTE_BW_20="B200"
 
 # "bw" or "band"
 LTE_TEST_PRIORITY = "bw"
+PHONE_REBOOT_TIME = 60
 
-class str_ue_info_l():
+class str_ue_info_LTE():
+    para_num = 4
     def __init__(self, ue_struct_):
         self.BAND=ue_struct_[0]
         self.CH_UL=ue_struct_[1]
@@ -23,14 +26,25 @@ class str_ue_info_l():
     def __str__(self):
         return "B{band:0>2}\t{ch_ul:5}\t{bw:d}MHz".format(band=self.BAND[2:],ch_ul=self.CH_UL,bw=int(int(self.BW[1:])/10))
 
-class str_ue_info_w():
+class str_ue_info_WCDMA():
+    para_num = 3
     def __init__(self, ue_struct_):
         self.BAND=ue_struct_[0]
         self.CH_UL=ue_struct_[1]
         self.CH_DL=ue_struct_[2]
 
     def __str__(self):
-        return "B{band:0>2}\t{ch_ul:5}".format(band=self.BAND[2:],ch_ul=self.CH_UL)
+        return "WB{band:0>2}\t{ch_ul:5}".format(band=self.BAND[2:],ch_ul=self.CH_UL)
+
+class str_ue_info_GSM():
+    para_num = 2
+    def __init__(self, ue_struct_):
+        self.BAND=ue_struct_[0]
+        self.CH=ue_struct_[1]
+
+    def __str__(self):
+        band_map = { "G085":"GSM850", "G09":"GSM900","G18":"DCS","G19":"PCS",}
+        return "{band:7}\t{ch:5}".format(band=band_map[self.BAND],ch=self.CH)
 
 class lte_band_cmw():
     def __init__(self, band_name, dl_ul_offset, bw_lmh_ul):
@@ -111,6 +125,11 @@ w_b2 = ("OB2", [9262, 9400, 9538],[9662, 9800, 9938])
 w_b5 = ("OB5", [4132, 4183, 4233],[4357,4408,4458])
 w_b8 = ("OB8", [2712, 2788, 2863],[2937,3013,3088])
 
+g_085 = ("G085", [128,192,251])
+g_09  = ("G09",  [975,62,124])
+g_18  = ("G18",  [512,698,885])
+g_19  = ("G19",  [512,661,810])
+
 lte_bw_map = (LTE_BW_5,LTE_BW_10,LTE_BW_20)
 lte_band_map = {
     1   :   lte_b1,
@@ -129,12 +148,33 @@ wcdma_band_map = {
     5   :   w_b5,
     8   :   w_b8,
 }
+gsm_band_map = {
+    5   :   g_085,
+    8   :   g_09,
+    3   :   g_18,
+    2   :   g_19,
+}
+
 standard_map = {
     1   :   "LTE",
     2   :   "WCDMA",
+    3   :   "GSM"
 }
+
 test_item_map = {
-    1   :   "aclr",
-    2   :   "sensm",
-    3   :   "sensd"
+    "LTE"   :{
+        1   :   ( "aclr", ["BAND","UL_Ch","BW","UTRA","EUTRA","PWR","EUTRA","UTRA"]),
+        2   :   ( "sensm",["BAND","UL_Ch","BW","sensm"] ),
+        3   :   ( "sensd",["BAND","UL_Ch","BW","sensd"] ),
+    },
+    "WCDMA" :{
+        1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
+        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
+        3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
+    },
+    "GSM"   :{
+        1   :   ( "switch_spetrum", ["BAND","CH","-400KHz","PWR","+400KHz"] ),
+        2   :   ( "sensm",          ["BAND","CH","sensm"] ),
+        3   :   ( "sensd",          ["BAND","CH","sensd"] ),
+    },
 }

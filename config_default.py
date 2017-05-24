@@ -4,31 +4,44 @@
 from MACRO_DEFINE import *
 
 config = {
-    # LTE:1 ;WCDMA:2
-    "TEST_RF"   :   (2,1),
+    # LTE:1; WCDMA:2 ; GSM:3
+    "TEST_RF"   :   (1,2,3),
     'LTE' : {
         # 测试 Band
-        'band'  :   (1,3,5,7,8,39,40,41),
-        # 'band'  :   (5,40,8,41,8,40,5,39,8,41,7,40),
+        # 'band'  :   (1,3,5,7,8,39,40,41),
+        'band'  :   (1,),
         # BW:   5, 10, 20
         'bw'    :   (0,1,0),
         # 高中低信道
         'lmh'   :   (1,1,1),
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,2,3),
+        'test_item'     :   (1,2),
         'data_save'     :   r"./test_data_l.txt",
     },
     'WCDMA' :{
         # 'band'  :   (1,2,5,8),
-        'band'  :   (1,2,5,8,),
+        'band'  :   (1,),
         'lmh'   :   (1,1,1),
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,2,3),
+        'test_item'     :   (1,2),
         # WCDMA 有 分集的通路
         'div-support'   :   (1,5,8),
         'data_save'     :   r"./test_data_w.txt",
     },
-    'dev_ip'    :   "10.237.70.10"
+    'GSM'   :{
+        'band'  :   (5,),
+        'lmh'   :   (1,1,1),
+        # 1 : Switch Spectrum, 2: Sensm , 3:sensd
+        'test_item'     :   (1,2),
+        'WITHSIM'   :   True,
+        # 1: Call from CMW , 0: Call from phone
+        'call_type' :   1,
+        # 1: Handover, 0:ON OFF
+        'switch_type':  1,
+        'div-support'   :   (5,8,3),
+        'data_save'     :   r"./test_data_g.txt",
+    },
+    'dev_ip'    :   "10.237.70.10",
     # 'gpib'      :   20
 }
 
@@ -39,7 +52,7 @@ SENSE_PARAM = {
     'pwr_fine' : 0.1,
     'frame_coarse' : 200,
     'frame_fine' : 1000,
-    'BER_threshold' : 5,
+    'BER_THRESHOLD' : 5,
     },
     "WCDMA":{
     'pwr_init' : -108,
@@ -47,6 +60,14 @@ SENSE_PARAM = {
     'pwr_fine' : 0.2,
     'frame_coarse' : 50,
     'frame_fine' : 100,
-    'BER_threshold' : 0.1,
+    'BER_THRESHOLD' : 0.1,
     },
+    "GSM":{
+    'pwr_init' : -102,
+    'pwr_coarse' : 2,
+    'pwr_fine' : 0.3,
+    'frame_coarse' : 30,
+    'frame_fine' : 100,
+    'BER_THRESHOLD' : 2.5,
+    }
 }

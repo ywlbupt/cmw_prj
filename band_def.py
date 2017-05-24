@@ -42,13 +42,31 @@ def wcdma_test_list(cfg):
                 test_list.append(ue_struct_w(band[0],band[1][j],band[2][j]))
     return test_list
 
+def gsm_test_list(cfg):
+    test_list = []
+    for i in cfg['GSM']['band']:
+        band = gsm_band_map[i]
+        for j,lmh_enable in enumerate(cfg['GSM']['lmh']):
+            if lmh_enable:
+                test_list.append(ue_struct_g(band[0],band[1][j]))
+    return test_list
+
+TEST_LIST_G = gsm_test_list(config)
+
 TEST_LIST_W = wcdma_test_list(config)
 
 TEST_LIST_L = lte_test_list(config, priority = LTE_TEST_PRIORITY)
 
+TEST_LIST = {
+    "LTE" : TEST_LIST_L,
+    "WCDMA" :   TEST_LIST_W,
+    "GSM"   :   TEST_LIST_G,
+}
+
 if __name__ == "__main__":
-    for i in TEST_LIST_W:
+    for i in TEST_LIST["GSM"]:
         print(i)
     # for i in TEST_LIST_W:
         # print(i)
+    print([gsm_band_map[i] for i in config['GSM']['div-support']])
     pass
