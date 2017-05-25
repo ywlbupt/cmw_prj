@@ -4,8 +4,8 @@
 from MACRO_DEFINE import *
 
 config = {
-    # LTE:1; WCDMA:2 ; GSM:3
-    "TEST_RF"   :   (1,2,3),
+    # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC
+    "TEST_RF"   :   (4,),
     'LTE' : {
         # 测试 Band
         # 'band'  :   (1,3,5,7,8,39,40,41),
@@ -23,13 +23,13 @@ config = {
         'band'  :   (1,),
         'lmh'   :   (1,1,1),
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,2),
+        'test_item'     :   (1,2,),
         # WCDMA 有 分集的通路
         'div-support'   :   (1,5,8),
         'data_save'     :   r"./test_data_w.txt",
     },
     'GSM'   :{
-        'band'  :   (5,),
+        'band'  :   (5,8,3,),
         'lmh'   :   (1,1,1),
         # 1 : Switch Spectrum, 2: Sensm , 3:sensd
         'test_item'     :   (1,2),
@@ -41,7 +41,14 @@ config = {
         'div-support'   :   (5,8,3),
         'data_save'     :   r"./test_data_g.txt",
     },
-    'dev_ip'    :   "10.237.70.10",
+    'TDSC'  :{
+        'band'  :   (34,39,),
+        'lmh'   :   (1,1,1),
+        # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
+        'test_item'     :   (1,2),
+        'data_save'     :   r"./test_data_t.txt",
+    },
+    'dev_ip'    :   "10.237.70.40",
     # 'gpib'      :   20
 }
 
@@ -69,5 +76,13 @@ SENSE_PARAM = {
     'frame_coarse' : 30,
     'frame_fine' : 100,
     'BER_THRESHOLD' : 2.5,
-    }
+    },
+    "TDSC":{
+    'pwr_init' : -108,
+    'pwr_coarse' : 0.5,
+    'pwr_fine' : 0.2,
+    'frame_coarse' : 50,
+    'frame_fine' : 100,
+    'BER_THRESHOLD' : 0.1,
+    },
 }

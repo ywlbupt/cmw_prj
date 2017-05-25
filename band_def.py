@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#TDSC!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from MACRO_DEFINE import *
@@ -36,11 +36,21 @@ def lte_test_list(cfg, priority = "bw"):
 def wcdma_test_list(cfg):
     test_list=[]
     for i in cfg['WCDMA']['band']:
-        band = wcdma_band_map[i]
+        band = wt_band_map[i]
         for j,lmh_enable in enumerate(cfg['WCDMA']['lmh']):
             if lmh_enable:
                 test_list.append(ue_struct_w(band[0],band[1][j],band[2][j]))
     return test_list
+
+def tdsc_test_list(cfg):
+    test_list=[]
+    for i in cfg['TDSC']['band']:
+        band = wt_band_map[i]
+        for j,lmh_enable in enumerate(cfg['TDSC']['lmh']):
+            if lmh_enable:
+                test_list.append(ue_struct_t(band[0],band[1][j]))
+    return test_list
+
 
 def gsm_test_list(cfg):
     test_list = []
@@ -55,18 +65,21 @@ TEST_LIST_G = gsm_test_list(config)
 
 TEST_LIST_W = wcdma_test_list(config)
 
+TEST_LIST_T = tdsc_test_list(config)
+
 TEST_LIST_L = lte_test_list(config, priority = LTE_TEST_PRIORITY)
 
 TEST_LIST = {
     "LTE" : TEST_LIST_L,
     "WCDMA" :   TEST_LIST_W,
     "GSM"   :   TEST_LIST_G,
+    "TDSC"  :   TEST_LIST_T,
 }
 
 if __name__ == "__main__":
-    for i in TEST_LIST["GSM"]:
+    for i in TEST_LIST["WCDMA"]:
         print(i)
     # for i in TEST_LIST_W:
         # print(i)
-    print([gsm_band_map[i] for i in config['GSM']['div-support']])
-    pass
+    md = "WCDMA"
+    print([wt_band_map[i][0] for i in config[md].get("div-support", ())])

@@ -1,5 +1,7 @@
 __pycache__
 *.swp
 test_data_l.txt
+test_data_t.txt
+test_data_g.txt
 test_data_w.txt
 *.zip

@@ -4,8 +4,9 @@
 from collections import namedtuple
 
 ue_struct_l = namedtuple("ue_struct_l",['BAND','CH_UL','CH_DL','BW'])
-ue_struct_w = namedtuple("ue_struct_w",['w_BAND','w_CH_UL','w_CH_DL'])
+ue_struct_w = namedtuple("ue_struct_w",['BAND','CH_UL','CH_DL'])
 ue_struct_g = namedtuple("ue_struct_g",['g_BAND','g_CH'])
+ue_struct_t = namedtuple("ue_struct_t",['BAND','CH_UL'])
 
 LTE_BW_5="B050"
 LTE_BW_10="B100"
@@ -44,6 +45,16 @@ class str_ue_info_GSM():
 
     def __str__(self):
         band_map = { "G085":"GSM850", "G09":"GSM900","G18":"DCS","G19":"PCS",}
+        return "{band:7}\t{ch:5}".format(band=band_map[self.BAND],ch=self.CH)
+
+class str_ue_info_TDSC():
+    para_num = 2
+    def __init__(self, ue_struct_):
+        self.BAND=ue_struct_[0]
+        self.CH=ue_struct_[1]
+
+    def __str__(self):
+        band_map = { "B1":"TDS-A", "B2":"TDS-F"}
         return "{band:7}\t{ch:5}".format(band=band_map[self.BAND],ch=self.CH)
 
 class lte_band_cmw():
@@ -130,6 +141,16 @@ g_09  = ("G09",  [975,62,124])
 g_18  = ("G18",  [512,698,885])
 g_19  = ("G19",  [512,661,810])
 
+t_f = ("B1", [9404, 9500, 9596]) # B39 1900
+t_a = ("B2", [10054, 10087, 10121]) # B34 2100
+
+standard_map = {
+    1   :   "LTE",
+    2   :   "WCDMA",
+    3   :   "GSM",
+    4   :   "TDSC",
+}
+
 lte_bw_map = (LTE_BW_5,LTE_BW_10,LTE_BW_20)
 lte_band_map = {
     1   :   lte_b1,
@@ -142,23 +163,19 @@ lte_band_map = {
     40  :   lte_b40,
     41  :   lte_b41_n,
 }
-wcdma_band_map = {
+wt_band_map = {
     1   :   w_b1,
     2   :   w_b2,
     5   :   w_b5,
     8   :   w_b8,
+    34  :   t_a,
+    39  :   t_f,
 }
 gsm_band_map = {
     5   :   g_085,
     8   :   g_09,
     3   :   g_18,
     2   :   g_19,
-}
-
-standard_map = {
-    1   :   "LTE",
-    2   :   "WCDMA",
-    3   :   "GSM"
 }
 
 test_item_map = {
@@ -168,6 +185,11 @@ test_item_map = {
         3   :   ( "sensd",["BAND","UL_Ch","BW","sensd"] ),
     },
     "WCDMA" :{
+        1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
+        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
+        3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
+    },
+    "TDSC" :{
         1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
         2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
         3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
