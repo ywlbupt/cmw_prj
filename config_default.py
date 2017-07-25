@@ -5,10 +5,10 @@ from MACRO_DEFINE import *
 
 config = {
     # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC
-    "TEST_RF"   :   (4,),
+    "TEST_RF"   :   (1,),
     'LTE' : {
         # 测试 Band
-        # 'band'  :   (1,3,5,7,8,39,40,41),
+        # 'band'  :   (1,3,4,5,7,8,12,20,34,38,39,40,41),
         'band'  :   (1,),
         # BW:   5, 10, 20
         'bw'    :   (0,1,0),
