@@ -76,6 +76,11 @@ lte_b1 = lte_band_cmw(
         LTE_BW_5 :(18025,18300,18575)
     }
 )
+lte_b2 = lte_band_cmw(
+    "OB2",[600   ,18600], {
+        LTE_BW_10:(18650,18900,19150),
+    }
+)
 lte_b3 = lte_band_cmw(
     "OB3",[1200,19200], {
         LTE_BW_10:(19250,19575,19900), 
@@ -109,6 +114,11 @@ lte_b8 = lte_band_cmw(
 lte_b12 = lte_band_cmw(
     "OB12",[5010,23010], {
         LTE_BW_10:(23060, 23095, 23130)
+    }
+)
+lte_b17 = lte_band_cmw(
+    "OB17",[5730,23730], {
+        LTE_BW_10:(23780, 23790, 23799)
     }
 )
 lte_b20 = lte_band_cmw(
@@ -176,12 +186,14 @@ standard_map = {
 lte_bw_map = (LTE_BW_5,LTE_BW_10,LTE_BW_20)
 lte_band_map = {
     1   :   lte_b1,
+    2   :   lte_b2,
     3   :   lte_b3,
     4   :   lte_b4,
     5   :   lte_b5,
     7   :   lte_b7,
     8   :   lte_b8,
     12  :   lte_b12,
+    17  :   lte_b17,
     20  :   lte_b20,
     34  :   lte_b34,
     38  :   lte_b38,

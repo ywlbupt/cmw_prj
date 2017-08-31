@@ -5,34 +5,34 @@ from MACRO_DEFINE import *
 
 config = {
     # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC
-    "TEST_RF"   :   (1,),
+    "TEST_RF"   :   (3,),
     'LTE' : {
         # 测试 Band
-        # 'band'  :   (1,3,4,5,7,8,12,20,34,38,39,40,41),
-        'band'  :   (1,),
+        'band'  :   (1,3,5,7,8,38,39,40,41),
+        # 'band'  :   (1,3,7,5,8,12,17,20,38,39,40,41,34,1,3,7,5,8,12,17,20,38,39,40,41,34),
+        # 'band'  :   (20,20,),
         # BW:   5, 10, 20
         'bw'    :   (0,1,0),
         # 高中低信道
         'lmh'   :   (1,1,1),
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,2),
-        'data_save'     :   r"./test_data_l.txt",
+        'test_item'     :   (1,),
+        'data_save'     :   r"./lte_data.txt",
     },
     'WCDMA' :{
-        # 'band'  :   (1,2,5,8),
-        'band'  :   (1,),
+        'band'  :   (1,2,5,8),
         'lmh'   :   (1,1,1),
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,2,),
+        'test_item'     :   (1,),
         # WCDMA 有 分集的通路
         'div-support'   :   (1,5,8),
         'data_save'     :   r"./test_data_w.txt",
     },
     'GSM'   :{
-        'band'  :   (5,8,3,),
+        'band'  :   (5,8,3,2),
         'lmh'   :   (1,1,1),
         # 1 : Switch Spectrum, 2: Sensm , 3:sensd
-        'test_item'     :   (1,2),
+        'test_item'     :   (1,),
         'WITHSIM'   :   True,
         # 1: Call from CMW , 0: Call from phone
         'call_type' :   1,
@@ -48,14 +48,15 @@ config = {
         'test_item'     :   (1,2),
         'data_save'     :   r"./test_data_t.txt",
     },
-    'dev_ip'    :   "10.237.70.40",
-    # 'gpib'      :   20
+    # 'dev_ip'    :   "192.168.0.2",
+    'gpib'      :   20 ,
+    'Report_file'   : "Report",
 }
 
 SENSE_PARAM = {
     "LTE" :{
-    'pwr_init' : -120,
-    'pwr_coarse' : 0.5,
+    'pwr_init' : -124,
+    'pwr_coarse' : 1,
     'pwr_fine' : 0.1,
     'frame_coarse' : 200,
     'frame_fine' : 1000,

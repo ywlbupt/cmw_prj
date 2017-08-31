@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys, os, visa, threading, time, string
+from datetime import datetime
 from band_def import TEST_LIST
 # from band_def import TEST_LIST_L
 # from band_def import TEST_LIST_W
@@ -15,7 +16,7 @@ from adb import adb
 #PM = visa.instrument("TCPIP0::192.168.0.1::inst0::INSTR")
 #PM = visa.instrument("GPIB1::20::INSTR")
 
-param_FDCorrection="1920000000, 1.0, 1980000000, 1.0, 2110000000, 1.0, 2170000000, 1.0, 1850000000, 1.0,1910000000, 1.0, 1930000000, 1.0, 1990000000, 1.0, 824000000, 0.6, 849000000, 0.6, 869000000, 0.6, 894000000, 0.6, 925000000, 0.6, 960000000, 0.6, 880000000, 0.6, 915000000, 0.6, 2350000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
+param_FDCorrection="1920000000, 1.0, 1980000000, 1.0, 2110000000, 1.0, 2170000000, 1.0, 1850000000, 1.0,1910000000, 1.0, 1930000000, 1.0, 1990000000, 1.0, 699000000, 0.6, 849000000, 0.6, 869000000, 0.6, 894000000, 0.6, 925000000, 0.6, 960000000, 0.6, 880000000, 0.6, 915000000, 0.6, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
 
 md_map = {"WCDMA":"WT","TDSC":"WT","LTE":"LTE","GSM":"GSM"}
 
@@ -74,6 +75,7 @@ class handle_instr():
         lossName = self.instr_query ("CONFigure:BASE:FDCorrection:CTABle:CATalog?")
         # if lossName.find ("CMW_loss") != -1:
             # self.instr_write ("CONFigure:BASE:FDCorrection:CTABle:DELete 'CMW_loss'")
+        self.instr_write("CONFigure:BASE:FDCorrection:CTABle:DELete:ALL")
         self.instr_write("CONFigure:BASE:FDCorrection:CTABle:CREate 'CMW_loss', {loss_matrix}".format(loss_matrix=loss_matrix))
         self.instr_write ("CONFigure:FDCorrection:ACTivate RF1C, 'CMW_loss', RXTX, RF1")
         self.instr_write ("CONFigure:FDCorrection:ACTivate RF1O, 'CMW_loss', RXTX, RF1")
@@ -186,7 +188,9 @@ class handle_instr():
                     total_res[item].append(dest_state+temp[item])
                 print("")
         finally:
-            self.LWGT_data_output(md, total_res, config[md]['data_save'])
+            self.LWGT_data_output(md, total_res, 
+                                  os.path.splitext(config[md]['data_save'])[0]+datetime.today().strftime("_%Y_%m_%d_%H_%M")
+                                  +os.path.splitext(config[md]['data_save'])[1])
             print(total_res)
 
     def LWGT_set_port_route(self,md,route_path = "main"):
@@ -429,7 +433,7 @@ class handle_instr():
 
         elif switch_mode == "ENHandover":
             self.instr_write("PREPare:LTE:SIGN:HANDover:DESTination 'LTE Sig1'")
-            # self.instr_write("PREPare:LTE:SIGN:HANDover:MMODe HANDover")
+            self.instr_write("PREPare:LTE:SIGN:HANDover:MMODe HANDover")
             self.instr_write("PREPare:LTE:SIGN:HANDover:ENHanced {md}, {st.BAND}, {st.CH_DL}, {st.BW}, NS01".format(md=dest_DD, st=dest_state))
             self.instr_write("CALL:LTE:SIGN:PSWitched:ACTion HANDover")
             time.sleep(5)
@@ -488,7 +492,8 @@ class handle_instr():
         self.instr_write("CONFigure:LTE:SIGN:EBLer:SCONdition NONE")
 
         self.LWGT_set_dl_pwr(md)
-        self.LWGT_set_ul_pwr(md, pwr="MAX")
+        # self.LWGT_set_ul_pwr(md, pwr="MAX")
+        self.LWGT_set_ul_pwr(md, pwr=-20)
         if route_path == "div":
             self.LWGT_set_port_route(md,"div")
             time.sleep(2)
@@ -579,7 +584,9 @@ class handle_instr():
         return (round(pwr,1), round(ber,2))
 
     def LWGT_data_output(self, md, output_result, fp):
-        with open(fp, 'w') as f:
+        if not os.path.exists(config["Report_file"]):
+            os.mkdir(config["Report_file"])
+        with open(os.path.join(config["Report_file"], fp),'w') as f:
             ue_info = eval("str_ue_info_"+md)
             for i,t in test_item_map[md].items():
                 if t[0] in output_result:
@@ -808,7 +815,7 @@ class handle_instr():
             for i in [2,3,4,5]:
                 res[i] = float(res[i]) - float(res[1])
             res = tuple(round(float(res[i]),2) for i in [2,3,13,4,5] )
-        print("print before aclr")
+        # print("print before aclr")
         print(res)
         return res
 
@@ -841,7 +848,9 @@ class handle_instr():
         while self.instr_query("FETCh:{0}:SIGN:BER:STATe:ALL?".format(md)).strip() != "RDY,ADJ,INV":
             time.sleep(1)
         res = self.instr_query("FETCh:{0}:SIGN:BER?".format(md)).split(",")
-        if int(res[0]) == 0 and "INV" not in res:
+        # print(res)
+        # if int(res[0]) == 0 and "INV" not in res:
+        if int(res[0]) == 0 :
             return (down_level, round(float(res[1]),2))
         else:
             raise ConnectionError
@@ -866,7 +875,7 @@ if __name__ == '__main__':
         if "dev_ip" in config:
             m = handle_instr(rm.open_resource("TCPIP0::{0}::inst0::INSTR".format(config["dev_ip"])), phone)
         elif "gpib" in config:
-            m = handle_instr(rm.open_resource("GPIB0::{0}::INSTR".format(config["gpib"])))
+            m = handle_instr(rm.open_resource("GPIB0::{0}::INSTR".format(config["gpib"])), phone)
         else:
             m = None
         if m:

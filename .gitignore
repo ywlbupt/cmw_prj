@@ -1,5 +1,6 @@
 __pycache__
 *.swp
+Report
 test_data_l.txt
 test_data_t.txt
 test_data_g.txt
