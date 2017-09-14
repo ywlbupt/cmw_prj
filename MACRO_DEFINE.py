@@ -3,18 +3,35 @@
 
 from collections import namedtuple
 
+LTE_BW_1P4 = "B014"
+LTE_BW_3 = "B030"
+LTE_BW_5="B050"
+LTE_BW_10="B100"
+LTE_BW_15="B150"
+LTE_BW_20="B200"
+
 ue_struct_l = namedtuple("ue_struct_l",['BAND','CH_UL','CH_DL','BW'])
 ue_struct_w = namedtuple("ue_struct_w",['BAND','CH_UL','CH_DL'])
 ue_struct_g = namedtuple("ue_struct_g",['g_BAND','g_CH'])
 ue_struct_t = namedtuple("ue_struct_t",['BAND','CH_UL'])
 
-LTE_BW_5="B050"
-LTE_BW_10="B100"
-LTE_BW_20="B200"
-
-# "bw" or "band"
+# "bw" or "band"，LTE测试以BW优先，例如先测完10MHz再转5MHz
+# LTE_TEST_PRIORITY = "band"
 LTE_TEST_PRIORITY = "bw"
+# 手机预估的重启时间
 PHONE_REBOOT_TIME = 60
+
+class lte_band_cmw():
+    def __init__(self, band_name, dl_ul_offset, bw_lmh_ul):
+        self.band = band_name
+        self.dl_ul_offset = dl_ul_offset
+        self.bw_lmh_ul=bw_lmh_ul
+    
+    def lte_ch_ul2dl(self, channel_num):
+        return channel_num-self.dl_ul_offset[1]+self.dl_ul_offset[0]
+    
+    def lte_ch_dl2ul(self, channel_num):
+        return channel_num+self.dl_ul_offset[1]-self.dl_ul_offset[0]
 
 class str_ue_info_LTE():
     para_num = 4
@@ -57,17 +74,65 @@ class str_ue_info_TDSC():
         band_map = { "B1":"TDS-A", "B2":"TDS-F"}
         return "{band:7}\t{ch:5}".format(band=band_map[self.BAND],ch=self.CH)
 
-class lte_band_cmw():
-    def __init__(self, band_name, dl_ul_offset, bw_lmh_ul):
-        self.band = band_name
-        self.dl_ul_offset = dl_ul_offset
-        self.bw_lmh_ul=bw_lmh_ul
-    
-    def lte_ch_ul2dl(self, channel_num):
-        return channel_num-self.dl_ul_offset[1]+self.dl_ul_offset[0]
-    
-    def lte_ch_dl2ul(self, channel_num):
-        return channel_num+self.dl_ul_offset[1]-self.dl_ul_offset[0]
+# "md"表示主+分都有，"m"表示只有主集
+w_b1 = ("OB1", [9612, 9750, 9888],[10562,10700,10838])
+w_b2 = ("OB2", [9262, 9400, 9538],[9662, 9800, 9938])
+w_b5 = ("OB5", [4132, 4183, 4233],[4357,4408,4458])
+w_b8 = ("OB8", [2712, 2788, 2863],[2937,3013,3088])
+
+g_085 = ("G085", [128,192,251])
+g_09  = ("G09",  [975,62,124])
+g_18  = ("G18",  [512,698,885])
+g_19  = ("G19",  [512,661,810])
+
+t_f = ("B1", [9404, 9500, 9596]) # B39 1900
+t_a = ("B2", [10054, 10087, 10121]) # B34 2100
+
+standard_map = {
+    1   :   "LTE",
+    2   :   "WCDMA",
+    3   :   "GSM",
+    4   :   "TDSC",
+}
+
+wt_band_map = {
+    1   :   w_b1,
+    2   :   w_b2,
+    5   :   w_b5,
+    8   :   w_b8,
+    34  :   t_a,
+    39  :   t_f,
+}
+gsm_band_map = {
+    5   :   g_085,
+    8   :   g_09,
+    3   :   g_18,
+    2   :   g_19,
+}
+
+test_item_map = {
+    "LTE"   :{
+        1   :   ( "aclr", ["BAND","UL_Ch","BW","UTRA","EUTRA","PWR","EUTRA","UTRA"]),
+        2   :   ( "sensm_max",["BAND","UL_Ch","BW","sensm_max"] ),
+        3   :   ( "sensd",["BAND","UL_Ch","BW","sensd"] ),
+        4   :   ( "sensm_cloop",["BAND","UL_Ch","BW","sensm_cloop"] ),
+    },
+    "WCDMA" :{
+        1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
+        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
+        3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
+    },
+    "TDSC" :{
+        1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
+        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
+        3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
+    },
+    "GSM"   :{
+        1   :   ( "switch_spetrum", ["BAND","CH","-400KHz","PWR","+400KHz"] ),
+        2   :   ( "sensm",          ["BAND","CH","sensm"] ),
+        3   :   ( "sensd",          ["BAND","CH","sensd"] ),
+    },
+}
 
 lte_b1 = lte_band_cmw(
     "OB1",[0   ,18000], {
@@ -162,27 +227,6 @@ lte_b41_w = lte_band_cmw(
     }
 )
 
-# "md"表示主+分都有，"m"表示只有主集
-w_b1 = ("OB1", [9612, 9750, 9888],[10562,10700,10838])
-w_b2 = ("OB2", [9262, 9400, 9538],[9662, 9800, 9938])
-w_b5 = ("OB5", [4132, 4183, 4233],[4357,4408,4458])
-w_b8 = ("OB8", [2712, 2788, 2863],[2937,3013,3088])
-
-g_085 = ("G085", [128,192,251])
-g_09  = ("G09",  [975,62,124])
-g_18  = ("G18",  [512,698,885])
-g_19  = ("G19",  [512,661,810])
-
-t_f = ("B1", [9404, 9500, 9596]) # B39 1900
-t_a = ("B2", [10054, 10087, 10121]) # B34 2100
-
-standard_map = {
-    1   :   "LTE",
-    2   :   "WCDMA",
-    3   :   "GSM",
-    4   :   "TDSC",
-}
-
 lte_bw_map = (LTE_BW_5,LTE_BW_10,LTE_BW_20)
 lte_band_map = {
     1   :   lte_b1,
@@ -200,41 +244,4 @@ lte_band_map = {
     39  :   lte_b39,
     40  :   lte_b40,
     41  :   lte_b41_n,
-}
-wt_band_map = {
-    1   :   w_b1,
-    2   :   w_b2,
-    5   :   w_b5,
-    8   :   w_b8,
-    34  :   t_a,
-    39  :   t_f,
-}
-gsm_band_map = {
-    5   :   g_085,
-    8   :   g_09,
-    3   :   g_18,
-    2   :   g_19,
-}
-
-test_item_map = {
-    "LTE"   :{
-        1   :   ( "aclr", ["BAND","UL_Ch","BW","UTRA","EUTRA","PWR","EUTRA","UTRA"]),
-        2   :   ( "sensm",["BAND","UL_Ch","BW","sensm"] ),
-        3   :   ( "sensd",["BAND","UL_Ch","BW","sensd"] ),
-    },
-    "WCDMA" :{
-        1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
-        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
-        3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
-    },
-    "TDSC" :{
-        1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
-        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
-        3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
-    },
-    "GSM"   :{
-        1   :   ( "switch_spetrum", ["BAND","CH","-400KHz","PWR","+400KHz"] ),
-        2   :   ( "sensm",          ["BAND","CH","sensm"] ),
-        3   :   ( "sensd",          ["BAND","CH","sensd"] ),
-    },
 }

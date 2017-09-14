@@ -77,9 +77,9 @@ TEST_LIST = {
 }
 
 if __name__ == "__main__":
-    for i in TEST_LIST["WCDMA"]:
+    for i in TEST_LIST["LTE"]:
         print(i)
     # for i in TEST_LIST_W:
         # print(i)
-    md = "WCDMA"
-    print([wt_band_map[i][0] for i in config[md].get("div-support", ())])
+    # md = "WCDMA"
+    # print([wt_band_map[i][0] for i in config[md].get("div-support", ())])

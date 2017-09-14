@@ -7,6 +7,7 @@ from band_def import TEST_LIST
 # from band_def import TEST_LIST_L
 # from band_def import TEST_LIST_W
 from MACRO_DEFINE import *
+
 from config_default import config
 from config_default import SENSE_PARAM
 from adb import adb
@@ -16,7 +17,7 @@ from adb import adb
 #PM = visa.instrument("TCPIP0::192.168.0.1::inst0::INSTR")
 #PM = visa.instrument("GPIB1::20::INSTR")
 
-param_FDCorrection="1920000000, 1.0, 1980000000, 1.0, 2110000000, 1.0, 2170000000, 1.0, 1850000000, 1.0,1910000000, 1.0, 1930000000, 1.0, 1990000000, 1.0, 699000000, 0.6, 849000000, 0.6, 869000000, 0.6, 894000000, 0.6, 925000000, 0.6, 960000000, 0.6, 880000000, 0.6, 915000000, 0.6, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
+param_FDCorrection="699000000, 0.6, 849000000, 0.6, 869000000, 0.6, 894000000, 0.6, 925000000, 0.6, 960000000, 0.6, 880000000, 0.6, 915000000, 0.6, 1710000000, 1.0, 2110000000, 1.0, 2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
 
 md_map = {"WCDMA":"WT","TDSC":"WT","LTE":"LTE","GSM":"GSM"}
 
@@ -462,10 +463,12 @@ class handle_instr():
             self.LWGT_connect(md)
         if "aclr" in mea_item:
             output_res["aclr"]=self.LTE_meas_aclr()
-        if "sensm" in mea_item:
-            output_res["sensm"]=self.LTE_meas_sense(route_path="main")
+        if "sensm_max" in mea_item:
+            output_res["sensm_max"]=self.LTE_meas_sense(route_path="main",ul_pwr="MAX")
+        if "sensm_cloop" in mea_item:
+            output_res["sensm_cloop"]=self.LTE_meas_sense(route_path="main",ul_pwr=-20)
         if "sensd" in mea_item:
-            output_res["sensd"]=self.LTE_meas_sense(route_path="div")
+            output_res["sensd"]=self.LTE_meas_sense(route_path="div", ul_pwr = "MAX")
         return output_res
 
     def LTE_meas_aclr(self):
@@ -486,14 +489,13 @@ class handle_instr():
         print(res)
         return res
 
-    def LTE_meas_sense(self,route_path="main"):
+    def LTE_meas_sense(self,route_path="main", ul_pwr="MAX"):
         md = "LTE"
         self.instr_write("CONFigure:LTE:SIGN:EBLer:REPetition SING")
         self.instr_write("CONFigure:LTE:SIGN:EBLer:SCONdition NONE")
 
         self.LWGT_set_dl_pwr(md)
-        # self.LWGT_set_ul_pwr(md, pwr="MAX")
-        self.LWGT_set_ul_pwr(md, pwr=-20)
+        self.LWGT_set_ul_pwr(md,ul_pwr)
         if route_path == "div":
             self.LWGT_set_port_route(md,"div")
             time.sleep(2)
@@ -525,6 +527,10 @@ class handle_instr():
                 return cell_pwr, ber
         else: 
             raise ConnectionError
+
+    def LTE_meas_ulcaalcr(self,md,ulca_info):
+        pass
+
 
     def LWGT_sense_alg(self,md):
         pwr_init = SENSE_PARAM[md]['pwr_init']

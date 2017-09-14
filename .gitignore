@@ -6,3 +6,4 @@ test_data_t.txt
 test_data_g.txt
 test_data_w.txt
 *.zip
+*.xlsx
