@@ -409,14 +409,15 @@ class handle_instr():
         else:
             switch_mode = "ENHandover"
         print(last_state)
+        # switch_mode = "redirection"
         print("Try {sw} to band {st.BAND}, channel {st.CH_UL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
         if switch_mode == "redirection":
             # self.instr_write("CONFigure:LTE:SIGN:DL:RSEPre:LEVel -80")
             self.LWGT_set_dl_pwr(md="LTE", pwr=-80)
-            # band_str = "CONFigure:LTE:SIGN:PCC:BAND {0}".format(dest_state.BAND)
+            band_str = "CONFigure:LTE:SIGN:PCC:BAND {0}".format(dest_state.BAND)
             ch_str = "CONFigure:LTE:SIGN:RFSettings:CHANnel:UL {0}".format(dest_state.CH_UL)
             bw_str = "CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(dest_state.BW)
-            str_list = []
+            str_list = [band_str,]
             if dest_state.BW <= last_state.BW:
                 str_list+=[bw_str, ch_str]
             else:
@@ -428,7 +429,6 @@ class handle_instr():
             self.instr_write("PREPare:LTE:SIGN:HANDover:DESTination 'LTE Sig1'")
             self.instr_write("PREPare:LTE:SIGN:HANDover:MMODe HANDover")
             self.instr_write("PREPare:LTE:SIGN:HANDover:ENHanced {md}, {st.BAND}, {st.CH_DL}, {st.BW}, NS01".format(md=dest_DD, st=dest_state))
-            # self.instr_write("PREPare:LTE:SIGN:HANDover: {st.BAND}, {st.CH_DL}, {st.BW}, NS01".format(st=dest_state))
             self.instr_write("CALL:LTE:SIGN:PSWitched:ACTion HANDover")
             time.sleep(2)
 
@@ -798,13 +798,15 @@ class handle_instr():
 
         if "aclr" in mea_item:
             output_res["aclr"] = self.WT_meas_aclr(md)
-        if "sensm" in mea_item:
-            output_res["sensm"] = self.WT_meas_sense(md, route_path="main")
+        if "sensm_max" in mea_item:
+            output_res["sensm_max"] = self.WT_meas_sense(md, route_path="main",pwr="MAX")
+        if "sensm_cloop" in mea_item:
+            output_res["sensm_cloop"] = self.WT_meas_sense(md, route_path="main", pwr=-20)
         if "sensd" in mea_item:
             ue_info = self.LWGT_get_state(md)
             # TODO
             if ue_info.BAND in [wt_band_map[i][0] for i in config[md].get("div-support", ())]:
-                output_res["sensd"] = self.WT_meas_sense(route_path="div")
+                output_res["sensd"] = self.WT_meas_sense(md,route_path="div")
         return output_res
 
     def WT_meas_aclr(self, md):
@@ -825,12 +827,12 @@ class handle_instr():
         print(res)
         return res
 
-    def WT_meas_sense(self, md, route_path="main"):
+    def WT_meas_sense(self, md, route_path="main",pwr = "MAX"):
         self.instr_write("CONFigure:{0}:SIGN:BER:SCONdition None".format(md))
         self.instr_write("CONFigure:{0}:SIGN:BER:REPetition SINGleshot".format(md))
 
         self.LWGT_set_dl_pwr(md)
-        self.LWGT_set_ul_pwr(md, pwr="MAX")
+        self.LWGT_set_ul_pwr(md, pwr)
         if route_path == "div":
             self.LWGT_set_port_route(md, "div")
             time.sleep(2)

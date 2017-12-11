@@ -16,8 +16,8 @@ ue_struct_g = namedtuple("ue_struct_g",['g_BAND','g_CH'])
 ue_struct_t = namedtuple("ue_struct_t",['BAND','CH_UL'])
 
 # "bw" or "band"，LTE测试以BW优先，例如先测完10MHz再转5MHz
-# LTE_TEST_PRIORITY = "band"
-LTE_TEST_PRIORITY = "bw"
+LTE_TEST_PRIORITY = "band"
+# LTE_TEST_PRIORITY = "bw"
 # 手机预估的重启时间
 PHONE_REBOOT_TIME = 60
 
@@ -119,8 +119,9 @@ test_item_map = {
     },
     "WCDMA" :{
         1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
-        2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
+        2   :   ( "sensm_max",["BAND","UL_Ch","sensm_max"] ),
         3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
+        4   :   ( "sensm_cloop",["BAND","UL_Ch","sensm_cloop"] ),
     },
     "TDSC" :{
         1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),

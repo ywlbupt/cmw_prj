@@ -3,6 +3,7 @@
 
 from MACRO_DEFINE import *
 from config_default import config
+from lte_band_def import LTE_Calc
 
 # 生成 TEST_LIST
 def lte_test_list(cfg, priority = "bw"):
@@ -11,7 +12,6 @@ def lte_test_list(cfg, priority = "bw"):
     if priority == "band":
         for i in cfg['LTE']['band']:
             for cmw_bw, bw_enable in bw_zip:
-
                 if bw_enable and (cmw_bw in lte_band_map[i].bw_lmh_ul):
                     band = lte_band_map[i]
                     for j,v in enumerate(cfg['LTE']["lmh"]):
@@ -22,7 +22,6 @@ def lte_test_list(cfg, priority = "bw"):
     elif priority == "bw":
         for cmw_bw, bw_enable in bw_zip:
             for i in cfg['LTE']['band']:
-
                 if bw_enable and (cmw_bw in lte_band_map[i].bw_lmh_ul):
                     band = lte_band_map[i]
                     for j,lmh_enable in enumerate(cfg['LTE']["lmh"]):
@@ -30,8 +29,37 @@ def lte_test_list(cfg, priority = "bw"):
                             ch_ul = band.bw_lmh_ul[cmw_bw][j]
                             # yield ue_struct_l(band.band,ch_ul,band.lte_ch_ul2dl(ch_ul), cmw_bw)
                             test_list.append(ue_struct_l(band.band,ch_ul,band.lte_ch_ul2dl(ch_ul), cmw_bw))
-
     return test_list
+
+def new_lte_test_list(cfg, priority = 'bw'):
+    test_list=[]
+    bw_zip = list(zip(lte_bw_map,cfg['LTE']["bw"]))
+    if priority == "band":
+        for i in cfg['LTE']['band']:
+            for cmw_bw, bw_enable in bw_zip:
+                # if bw_enable and (cmw_bw in lte_band_map[i].bw_lmh_ul):
+                if bw_enable and LTE_Calc.get_band_support(i, cmw_bw):
+                    # band = lte_band_map[i]
+                    band_lmh = LTE_Calc.get_bw_ul_lmh_ch(i,cmw_bw)
+                    for j,v in enumerate(cfg['LTE']["lmh"]):
+                        if v:
+                            ch_ul = band_lmh[j]
+                            # test_list.append(ue_struct_l(band.band,ch_ul,band.lte_ch_ul2dl(ch_ul), cmw_bw))
+                            test_list.append(ue_struct_l(LTE_Calc.get_cmwband_name(i),ch_ul,LTE_Calc.get_lte_ch_ul2dl(i, ch_ul), cmw_bw))
+    elif priority == "bw":
+        for cmw_bw, bw_enable in bw_zip:
+            for i in cfg['LTE']['band']:
+                # if bw_enable and (cmw_bw in lte_band_map[i].bw_lmh_ul):
+                if bw_enable and LTE_Calc.get_band_support(i, cmw_bw):
+                    # band = lte_band_map[i]
+                    band_lmh = LTE_Calc.get_bw_ul_lmh_ch(i,cmw_bw)
+                    for j,v in enumerate(cfg['LTE']["lmh"]):
+                        if v:
+                            ch_ul = band_lmh[j]
+                            # test_list.append(ue_struct_l(band.band,ch_ul,band.lte_ch_ul2dl(ch_ul), cmw_bw))
+                            test_list.append(ue_struct_l(LTE_Calc.get_cmwband_name(i),ch_ul,LTE_Calc.get_lte_ch_ul2dl(i, ch_ul), cmw_bw))
+    return test_list
+
 
 def wcdma_test_list(cfg):
     test_list=[]
@@ -67,7 +95,8 @@ TEST_LIST_W = wcdma_test_list(config)
 
 TEST_LIST_T = tdsc_test_list(config)
 
-TEST_LIST_L = lte_test_list(config, priority = LTE_TEST_PRIORITY)
+# TEST_LIST_L = lte_test_list(config, priority = LTE_TEST_PRIORITY)
+TEST_LIST_L = new_lte_test_list(config, priority = LTE_TEST_PRIORITY)
 
 TEST_LIST = {
     "LTE" : TEST_LIST_L,
