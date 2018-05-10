@@ -8,16 +8,20 @@ from band_def import TEST_LIST
 # from band_def import TEST_LIST_W
 from MACRO_DEFINE import *
 
+from config_default import param_FDCorrection
 from config_default import config
 from config_default import SENSE_PARAM
 from adb import adb
+
+from package.logHandler import LogHandler
+# log.info("test log")
 
 #import msvcrt
 
 #PM = visa.instrument("TCPIP0::192.168.0.1::inst0::INSTR")
 #PM = visa.instrument("GPIB1::20::INSTR")
 
-param_FDCorrection="699000000, 0.6, 849000000, 0.6, 869000000, 0.6, 894000000, 0.6, 925000000, 0.6, 960000000, 0.6, 880000000, 0.6, 915000000, 0.6, 1710000000, 1.0, 2110000000, 1.0, 2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
+# param_FDCorrection="699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
 
 md_map = {"WCDMA":"WT","TDSC":"WT","LTE":"LTE","GSM":"GSM"}
 
@@ -73,7 +77,7 @@ class handle_instr():
             self.instr_write("SYSTem:DISPlay:UPDate OFF")
 
     def set_FDCorrection(self,loss_matrix):
-        lossName = self.instr_query ("CONFigure:BASE:FDCorrection:CTABle:CATalog?")
+        # lossName = self.instr_query ("CONFigure:BASE:FDCorrection:CTABle:CATalog?")
         # if lossName.find ("CMW_loss") != -1:
             # self.instr_write ("CONFigure:BASE:FDCorrection:CTABle:DELete 'CMW_loss'")
         self.instr_write("CONFigure:BASE:FDCorrection:CTABle:DELete:ALL")
@@ -95,6 +99,8 @@ class handle_instr():
             self.instr_write ("CONFigure:LTE:SIGN:DMODe {DD}".format(DD=test_DD))
             self.instr_write ("CONFigure:LTE:SIGN:PCC:BAND {band}".format(band=test_list[0].BAND))
             self.instr_write ("CONFigure:LTE:SIGN:RFSettings:CHANnel:UL {0}".format(test_list[0].CH_UL))
+            self.instr_write ("CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(test_list[0].BW))
+            # bw_str = "CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(dest_state.BW)
         self.instr_write ("ROUTe:LTE:MEAS:SCENario:CSPath 'LTE Sig1'")
         self.instr_write ("SOURce:LTE:SIGN:CELL:STATe ON")
         while self.instr_query("SOURce:LTE:SIGN:CELL:STATe:ALL?").strip() != "ON,ADJ":
@@ -499,7 +505,6 @@ class handle_instr():
         if route_path == "div":
             self.LWGT_set_port_route(md,"div")
             time.sleep(2)
-        
         pwr, ber = self.LWGT_sense_alg(md)
         
         self.LWGT_set_dl_pwr(md)
@@ -530,7 +535,6 @@ class handle_instr():
 
     def LTE_meas_ulcaalcr(self,md,ulca_info):
         pass
-
 
     def LWGT_sense_alg(self,md):
         pwr_init = SENSE_PARAM[md]['pwr_init']
@@ -564,29 +568,47 @@ class handle_instr():
                 pwr = pwr + pwr_coarse
                 pwr, ber = meas_func(md, pwr,frame=frame_coarse)
                 if ber < BER_THRESHOLD:
-                    EBL_state = "fine"
+                    EBL_state = "fine_1"
                 else:
                     EBL_state = "pwr_back"
-            elif EBL_state == "fine" :
+            elif EBL_state == "fine_1" :
                 pwr = pwr - pwr_fine
                 pwr, ber = meas_func(md, pwr,frame=frame_fine)
                 if ber < BER_THRESHOLD:
-                    EBL_state = "fine"
+                    EBL_state = "fine_1"
                 else:
-                    EBL_state = "pwr_back_fine"
-            elif EBL_state == "pwr_back_fine":
+                    EBL_state = "pwr_back_fine_1"
+            elif EBL_state == "pwr_back_fine_1":
+                pwr = pwr + pwr_fine
+                pwr, ber = meas_func(md, pwr,frame=frame_fine)
+                if ber < BER_THRESHOLD:
+                    # EBL_state = "end"
+                    EBL_state = "fine_2"
+                else:
+                    EBL_state = "pwr_back_fine_1"
+            elif EBL_state == "fine_2":
+                pwr = pwr - pwr_fine
+                pwr, ber = meas_func(md, pwr,frame=frame_fine)
+                if ber < BER_THRESHOLD:
+                    EBL_state = "fine_1"
+                else:
+                    EBL_state = "pwr_back_fine_2"
+            elif EBL_state == "pwr_back_fine_2":
                 pwr = pwr + pwr_fine
                 pwr, ber = meas_func(md, pwr,frame=frame_fine)
                 if ber < BER_THRESHOLD:
                     EBL_state = "end"
                 else:
-                    EBL_state = "pwr_back_fine"
+                    EBL_state = "pwr_back_fine_1"
             print("\r{0}, {1}, {2}".format(round(pwr,2), ber, EBL_state),end="")
             # except TypeError as e:
                 # print("BER test error, NoneType receive")
         print("")
         if md == "LTE":
             pwr = float(self.instr_query("SENSe:LTE:SIGN:DL:FCPower?"))
+            if config[md]['usr_define']:
+                pwr = self.LWG_get_RSRP(md)[1]
+                print("RSRP:"+str(self.LWG_get_RSRP(md)))
         return (round(pwr,1), round(ber,2))
 
     def LWGT_data_output(self, md, output_result, fp):
@@ -889,8 +911,6 @@ if __name__ == '__main__':
         if m:
             print(m.get_instr_version())
             m.set_remote_display(state=True)
-
-            # m.tdsc_test()
 
             for i, v in enumerate(config.get('TEST_RF', ())):
                 md = standard_map[v]

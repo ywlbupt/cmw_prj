@@ -52,6 +52,7 @@ LTE_BW_SUPPORT={
     43: LTE_BW_MAP(0,0,1,1,1,1),
     44: LTE_BW_MAP(0,1,1,1,1,1),
     45: LTE_BW_MAP(0,0,1,1,1,1),
+    66: LTE_BW_MAP(1,1,1,1,1,1),
 }
 
 
@@ -96,17 +97,19 @@ LTE_UDL={
     37: LTE_UDL_MAP(1910,   1930,   1910,   1930,   37550, 37749, 37550, 37749),
     38: LTE_UDL_MAP(2570,   2620,   2570,   2620,   37750, 38249, 37750, 38249),
     39: LTE_UDL_MAP(1880,   1920,   1880,   1920,   38250, 38649, 38250, 38649),
-    40: LTE_UDL_MAP(2300,   2400,   2300,   2400,   38650, 41589, 38650, 41589),
-    41: LTE_UDL_MAP(2496,   2690,   2496,   2690,   39650, 41589, 39650, 41589),
+    40: LTE_UDL_MAP(2300,   2400,   2300,   2400,   38650, 39649, 38650, 39649),
+    # 41: LTE_UDL_MAP(2496,   2690,   2496,   2690,   39650, 41589, 39650, 41589),
+    41: LTE_UDL_MAP(2535,   2655,   2496,   2690,   40040, 41239, 40040, 41239),
     42: LTE_UDL_MAP(3400,   3600,   3400,   3600,   41590, 43589, 41590, 43589),
     43: LTE_UDL_MAP(3600,   3800,   3600,   3800,   43590, 45589, 43590, 45589),
     44: LTE_UDL_MAP(703,    803,    703,    803,    45590, 46589, 45590, 46589),
     45: LTE_UDL_MAP(1446,   1467,   1447,   1467,   46590, 46789, 46590, 46789),
     46: LTE_UDL_MAP(5150,   5925,   5150,   5925,   46790, 54539, 46790, 54539),
+    66: LTE_UDL_MAP(1710,   1780,   2110,   2200,   131972, 132671, 66436, 67335),
 }
 
 class LTE_Calc():
-    bw_map={
+    bw_ch_gap_map={
         LTE_BW_1P4 : 7,
         LTE_BW_3   :15,
         LTE_BW_5   :25,
@@ -134,7 +137,7 @@ class LTE_Calc():
     def get_bw_ul_lmh_ch(cls,band_num, bw):
         if getattr(LTE_BW_SUPPORT[band_num],bw):
             band_info = LTE_UDL[band_num]
-            sep = cls.bw_map[bw]
+            sep = cls.bw_ch_gap_map[bw]
             return(band_info.ch_ul_l+sep,round((band_info.ch_ul_l+band_info.ch_ul_h+1)/2), band_info.ch_ul_h-sep+1)
         else:
             return None
