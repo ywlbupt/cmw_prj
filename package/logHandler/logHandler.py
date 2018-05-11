@@ -18,7 +18,7 @@ import logging
 
 from logging.handlers import TimedRotatingFileHandler
 from logging import FileHandler
-
+from datetime import datetime
 
 # 日志级别
 CRITICAL = 50
@@ -32,6 +32,7 @@ NOTSET = 0
 
 CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 ROOT_PATH = os.path.join(CURRENT_PATH, os.pardir)
+# Log文件默认保存在当前文件的上一级路径下的LOG文件夹下
 LOG_PATH = os.path.join(ROOT_PATH, 'log')
 if not os.path.exists(LOG_PATH):
     os.mkdir(LOG_PATH)
@@ -52,7 +53,7 @@ class LogHandler(logging.Logger):
         self.__setStreamHandler__()
 
     def __setFileHandler__(self, level = None):
-        file_name = os.path.join(LOG_PATH, '{name}.log'.format(name=self.name))
+        file_name = os.path.join(LOG_PATH, '{name}{time}.log'.format(name=self.name, time = datetime.today().strftime("_%Y_%m_%d_%H_%M")))  
         formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
         file_handler = FileHandler(file_name ,mode = "w")
         file_handler.setFormatter(formatter)
@@ -64,7 +65,7 @@ class LogHandler(logging.Logger):
         :param level:
         :return:
         """
-        file_name = os.path.join(LOG_PATH, '{name}.log'.format(name=self.name))
+        file_name = os.path.join(LOG_PATH, '{name}_rotate_{time}.log'.format(name=self.name, time = datetime.today().strftime("_%Y_%m_%d"))) 
         # 设置日志回滚, 保存在log目录, 一天保存一个文件, 保留15天
         # file_handler = TimedRotatingFileHandler(filename=file_name, when='D', interval=1, backupCount=15)
         file_handler = TimedRotatingFileHandler(filename=file_name, when='D', interval=2, backupCount=15)

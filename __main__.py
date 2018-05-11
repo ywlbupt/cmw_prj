@@ -14,6 +14,8 @@ from config_default import SENSE_PARAM
 from adb import adb
 
 from package.logHandler import LogHandler
+import logging
+log = LogHandler("test_log", level = logging.DEBUG)
 # log.info("test log")
 
 #import msvcrt
@@ -40,7 +42,7 @@ class handle_instr():
         try:
             self.instr.write(*args, **kwargs)
         except:
-            print("write error ",args)
+            log.info("write error ",args)
             time.sleep(4)
             self.instr.write(*args, **kwargs)
 
@@ -49,7 +51,7 @@ class handle_instr():
             m = self.instr.query(*args,**kwargs)
         # return self.instr.query(cmd)
         except:
-            print("query error {0}",args)
+            log.info("query error {0}",args)
             time.sleep(4)
             m = self.instr.query(*args,**kwargs)
         return m
@@ -61,7 +63,7 @@ class handle_instr():
         # preset instr
         self.instr_write("SYSTem:PRESet:ALL;*OPC")
         # self.instr_write("SYSTem:PRESet:ALL")
-        print("instr reset.......")
+        log.info("instr reset.......")
         time.sleep(4)
 
     def instr_close(self):
@@ -190,15 +192,15 @@ class handle_instr():
                             self.LWGT_disconnect_off(md, state_on=True)
                             self.LWGT_connect(md)
                         else:
-                            print("still connected, try again")
+                            log.info("still connected, try again")
                 for item in temp.keys():
                     total_res[item].append(dest_state+temp[item])
-                print("")
+                log.info("")
         finally:
             self.LWGT_data_output(md, total_res, 
                                   os.path.splitext(config[md]['data_save'])[0]+datetime.today().strftime("_%Y_%m_%d_%H_%M")
                                   +os.path.splitext(config[md]['data_save'])[1])
-            print(total_res)
+            log.info(total_res)
 
     def LWGT_set_port_route(self,md,route_path = "main"):
         route_m = "RF1C,RX1,RF1C,TX1"
@@ -294,7 +296,7 @@ class handle_instr():
             return True
 
     def LWGT_connect(self,md):
-        print("{md} connect begin".format(md = md))
+        log.info("{md} connect begin".format(md = md))
         for j in range(3):
             for i in range(30):
                 if md == "LTE":
@@ -302,14 +304,14 @@ class handle_instr():
                     time.sleep(2)
                     res_ps = self.instr_query( "FETCh:LTE:SIGN:PSWitched:STATe?").strip()
                     res_rrc = self.instr_query("SENSe:LTE:SIGN:RRCState?").strip()
-                    print("\r{0:<5} ".format(res_ps),end="")
-                    print("Connecting phone, {0}".format(i),end="")
+                    log.info("\r{0:<5} ".format(res_ps),end="")
+                    log.info("Connecting phone, {0}".format(i),end="")
                     if res_ps == "CEST" and res_rrc == "CONN":
                         break
                 elif md in ["WCDMA","TDSC"]:
                     res_ps = self.instr_query("FETCh:{0}:SIGN:CSWitched:STATe?".format(md),delay=1).strip()
-                    print("\r{0:<5} ".format(res_ps),end="")
-                    print("Connecting phone, {0}".format(i),end="")
+                    log.info("\r{0:<5} ".format(res_ps),end="")
+                    log.info("Connecting phone, {0}".format(i),end="")
                     if res_ps == "REG":
                         self.instr_write("CALL:{0}:SIGN:CSWitched:ACTion CONNect".format(md))
                     elif res_ps == "CEST":
@@ -318,25 +320,25 @@ class handle_instr():
                 elif md == "GSM":
                     if config['GSM']['WITHSIM']:
                         res_cs = self.instr_query("FETCh:GSM:SIGN:CSWitched:STATe?").strip()
-                        print("\r{0:<5} ".format(res_cs),end="")
-                        print("Connecting phone, {0}".format(i),end="")
+                        log.info("\r{0:<5} ".format(res_cs),end="")
+                        log.info("Connecting phone, {0}".format(i),end="")
                         if config['GSM']['call_type']:
                             if res_cs == "SYNC":
                                 self.instr_write("CALL:GSM:SIGN:CSWitched:ACTion CONNect")
                             elif res_cs == "ALER":
-                                print("  Please answer the call",end="")
+                                log.info("  Please answer the call",end="")
                         else:
                             if res_cs == "SYNC":
-                                print("  Please call from phone",end="")
+                                log.info("  Please call from phone",end="")
 
                         if res_cs == "CEST":
                             break
                         time.sleep(2)
                 else:
                     break
-            print("")
+            log.info("")
             if not self.LWGT_check_connection(md) and j != 2:
-                print("phone reboot")
+                log.info("phone reboot")
                 self.phone_hd.adb_reboot()
                 save_state = self.LWGT_get_state(md)
                 if md == "LTE":
@@ -351,9 +353,9 @@ class handle_instr():
             else:
                 break
         if self.LWGT_check_connection(md):
-            print("Connection Established!")
+            log.info("Connection Established!")
         else:
-            print("Conecting failed")
+            log.info("Conecting failed")
         return 0
 
     def LWGT_disconnect_off(self, md="LTE", state_on = False):
@@ -414,9 +416,9 @@ class handle_instr():
                 switch_mode = "Handover"
         else:
             switch_mode = "ENHandover"
-        print(last_state)
+        log.info(last_state)
         # switch_mode = "redirection"
-        print("Try {sw} to band {st.BAND}, channel {st.CH_UL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
+        log.info("Try {sw} to band {st.BAND}, channel {st.CH_UL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
         if switch_mode == "redirection":
             # self.instr_write("CONFigure:LTE:SIGN:DL:RSEPre:LEVel -80")
             self.LWGT_set_dl_pwr(md="LTE", pwr=-80)
@@ -455,9 +457,9 @@ class handle_instr():
 
         present_state = self.LWGT_get_state(md)
         if present_state == dest_state:
-            print("{0} sucessful".format(switch_mode))
+            log.info("{0} sucessful".format(switch_mode))
         else:
-            print("{0} faild".format(switch_mode))
+            log.info("{0} faild".format(switch_mode))
         pass
 
     def LTE_acquire_meas(self, md, mea_item = None):
@@ -465,7 +467,7 @@ class handle_instr():
         if not mea_item:
             mea_item = ("aclr",)
         if not self.LWGT_check_connection(md):
-            print("{md} not connected".format(md=md))
+            log.info("{md} not connected".format(md=md))
             self.LWGT_connect(md)
         if "aclr" in mea_item:
             output_res["aclr"]=self.LTE_meas_aclr()
@@ -492,7 +494,7 @@ class handle_instr():
             time.sleep(1)
         res = self.instr_query("FETCh:LTE:MEAS:MEValuation:ACLR:AVERage?").strip().split(",")
         res = tuple(round(float(res[i]),2) for i in [2,3,4,5,6] )
-        print(res)
+        log.info(res)
         return res
 
     def LTE_meas_sense(self,route_path="main", ul_pwr="MAX"):
@@ -511,7 +513,7 @@ class handle_instr():
         if route_path == "div":
             self.LWGT_set_port_route(md,"main")
             time.sleep(2)
-        print("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
+        log.info("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
         time.sleep(1)
         return (pwr, ber)
 
@@ -600,15 +602,15 @@ class handle_instr():
                     EBL_state = "end"
                 else:
                     EBL_state = "pwr_back_fine_1"
-            print("\r{0}, {1}, {2}".format(round(pwr,2), ber, EBL_state),end="")
+            log.info("\r{0}, {1}, {2}".format(round(pwr,2), ber, EBL_state),end="")
             # except TypeError as e:
-                # print("BER test error, NoneType receive")
-        print("")
+                # log.info("BER test error, NoneType receive")
+        log.info("")
         if md == "LTE":
             pwr = float(self.instr_query("SENSe:LTE:SIGN:DL:FCPower?"))
             if config[md]['usr_define']:
                 pwr = self.LWG_get_RSRP(md)[1]
-                print("RSRP:"+str(self.LWG_get_RSRP(md)))
+                log.info("RSRP:"+str(self.LWG_get_RSRP(md)))
         return (round(pwr,1), round(ber,2))
 
     def LWGT_data_output(self, md, output_result, fp):
@@ -651,7 +653,7 @@ class handle_instr():
         if not mea_item:
             mea_item = ("switch_spetrum",)
         if not self.LWGT_check_connection(md):
-            print("{md} not connected".format(md=md))
+            log.info("{md} not connected".format(md=md))
             self.LWGT_connect(md)
 
         if "switch_spetrum" in mea_item:
@@ -679,7 +681,7 @@ class handle_instr():
 
         pwr, ber = self.LWGT_sense_alg(md)
 
-        print("rscp is {0}".format(self.LWG_get_RSRP(md)))
+        log.info("rscp is {0}".format(self.LWG_get_RSRP(md)))
 
         self.LWGT_set_dl_pwr(md)
         if route_path == "div":
@@ -690,7 +692,7 @@ class handle_instr():
         while self.instr_query("FETCh:GSM:SIGN:BER:CSWitched:STATe?").strip() != "OFF":
             time.sleep(1)
 
-        print("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
+        log.info("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
         time.sleep(1)
         return (pwr, ber)
 
@@ -716,13 +718,13 @@ class handle_instr():
             time.sleep(1)
         res = self.instr_query("FETCh:GSM:MEAS:MEValuation:SSWitching:FREQuency?").strip().split(",")
         res = tuple(round(float(res[i]),2) for i in [20,21,22] )
-        print(res)
+        log.info(res)
         return res
 
     def GSM_ch_redirection(self, dest_state):
         md = "GSM"
         last_state = self.LWGT_get_state(md)
-        print("try redrection to {0}".format(dest_state))
+        log.info("try redrection to {0}".format(dest_state))
         if last_state.g_BAND == dest_state.g_BAND:
             self.instr_write("CONFigure:GSM:SIGN:RFSettings:CHANnel:TCH {ch}".format(ch=dest_state.g_CH))
             time.sleep(2)
@@ -744,7 +746,7 @@ class handle_instr():
                     time.sleep(1)
             else:
                 self.LWGT_disconnect_off(md, state_on=False)
-                print("phone reboot")
+                log.info("phone reboot")
                 self.phone_hd.adb_reboot()
                 self.GSM_para_configure(md, (dest_state,))
 
@@ -758,14 +760,14 @@ class handle_instr():
             time.sleep(1)
         present_state = self.LWGT_get_state(md)
         if present_state == dest_state:
-            print("redirection successful")
+            log.info("redirection successful")
         else :
-            print("redirection failed")
+            log.info("redirection failed")
 
     def WT_ch_redirection(self, md, dest_state):
         self.LWGT_set_dl_pwr(md)
         last_state = self.LWGT_get_state(md)
-        print("try redrection to {0}".format(dest_state))
+        log.info("try redrection to {0}".format(dest_state))
         if last_state.BAND != dest_state.BAND:
             if md == "WCDMA":
                 self.instr_write("CONFigure:{md}:SIGN:BAND {band}".format(md=md, band=dest_state.BAND))
@@ -778,12 +780,12 @@ class handle_instr():
             time.sleep(6)
         if self.LWGT_check_connection(md):
             if self.LWGT_get_state(md) == dest_state:
-                print("redirection successful")
+                log.info("redirection successful")
             else:
-                print("redirection failed but connected")
-                print(self.LWGT_get_state(md))
+                log.info("redirection failed but connected")
+                log.info(self.LWGT_get_state(md))
         else:
-            print("------------redirection error---------------------------")
+            log.info("------------redirection error---------------------------")
 
     def WT_para_configure(self, md, test_list = None):
         str_sig1 = {"WCDMA" : "WCDMA Sig1", "TDSC": "TD-SCDMA Sig1"}
@@ -804,7 +806,7 @@ class handle_instr():
         self.instr_write("SOURce:{0}:SIGN:CELL:STATe ON".format(md))
         while self.instr_query("SOUR:{0}:SIGN:CELL:STAT:ALL?".format(md)).strip()!="ON,ADJ":
             time.sleep(1)
-        print("Cell initialling done")
+        log.info("Cell initialling done")
         self.instr_write("CONFigure:{0}:MEAS:MEValuation:REPetition SINGleshot".format(md))
         self.instr_write("CONF:{0}:MEAS:MEV:SCO:MOD 10".format(md))
         self.instr_write("CONF:{0}:MEAS:MEV:SCO:SPEC 10".format(md))
@@ -815,7 +817,7 @@ class handle_instr():
         if not mea_item:
             mea_item = ("aclr",)
         if not self.LWGT_check_connection(md):
-            print("Not connected")
+            log.info("Not connected")
             self.LWGT_connect(md)
 
         if "aclr" in mea_item:
@@ -845,8 +847,8 @@ class handle_instr():
             for i in [2,3,4,5]:
                 res[i] = float(res[i]) - float(res[1])
             res = tuple(round(float(res[i]),2) for i in [2,3,13,4,5] )
-        # print("print before aclr")
-        print(res)
+        # log.info("log.info before aclr")
+        log.info(res)
         return res
 
     def WT_meas_sense(self, md, route_path="main",pwr = "MAX"):
@@ -865,7 +867,7 @@ class handle_instr():
         if route_path == "div":
             self.LWGT_set_port_route(md, "main")
             time.sleep(2)
-        print("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
+        log.info("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
         time.sleep(1)
         return (pwr, ber)
 
@@ -878,7 +880,7 @@ class handle_instr():
         while self.instr_query("FETCh:{0}:SIGN:BER:STATe:ALL?".format(md)).strip() != "RDY,ADJ,INV":
             time.sleep(1)
         res = self.instr_query("FETCh:{0}:SIGN:BER?".format(md)).split(",")
-        # print(res)
+        # log.info(res)
         # if int(res[0]) == 0 and "INV" not in res:
         if int(res[0]) == 0 :
             return (down_level, round(float(res[1]),2))
@@ -909,7 +911,7 @@ if __name__ == '__main__':
         else:
             m = None
         if m:
-            print(m.get_instr_version())
+            log.info(m.get_instr_version())
             m.set_remote_display(state=True)
 
             for i, v in enumerate(config.get('TEST_RF', ())):
@@ -922,4 +924,4 @@ if __name__ == '__main__':
         rm.close()
     finally:
         time_end = time.time()
-        print("time elaped {0}:{1}".format(int(time_end-time_start)//60, int(time_end-time_start)%60))
+        log.info("time elaped {0}:{1}".format(int(time_end-time_start)//60, int(time_end-time_start)%60))

@@ -7,3 +7,4 @@ test_data_g.txt
 test_data_w.txt
 *.zip
 *.xlsx
+package/log
