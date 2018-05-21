@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# 插损设置
-param_FDCorrection="699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
-# param_FDCorrection="699000000, 30, 2700000000, 30"
+# B41 宽频段范围选项
 
+# 插损设置 , (Ouput, Input, Loss TAble)
+param_FDCorrection=(0,0,"699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2")
+# param_FDCorrection="699000000, 30, 2700000000, 30"
 
 config = {
     'dev_ip'    :   "192.168.0.2",
@@ -16,20 +17,20 @@ config = {
         # use for 辐射耦合Desense测试，CMW500辐射测试不稳定，放弃
         'usr_define' :   False,
         # 测试 Band
-        'band'  :   (1,2,3,4,5,7,8,12,13,17,18,19,20,25,26,28,30,34,38,39,40,41,),
-        # 'band'  :   (34,38,39,40,41,28,30,),
+        # 'band'  :   (1,2,3,4,5,7,8,12,13,17,18,19,20,25,26,28,30,34,38,39,40,41,),
+        'band'  :   (41,41,38,38),
         # BW:   5, 10, 20
-        'bw'    :   (1,0,0),
+        'bw'    :   (0,1,0),
         # 高中低信道
         'lmh'   :   (1,1,1),
         # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20， 小功率
-        'test_item'     :   (1,),
+        'test_item'     :   (1,3,),
         'data_save'     :   r"./lte_data.txt",
     },
     'WCDMA' :{
         'band'  :   (1,2,5,8,3,4,6,9,19,),
         'lmh'   :   (1,1,1),
-        # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20
+        # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20 小功率灵敏度
         'test_item'     :   (1,),
         # WCDMA 有 分集的通路
         'div-support'   :   (1,2,5,8),
@@ -75,9 +76,12 @@ lte_define_ch = (
 
 SENSE_PARAM = {
     "LTE" :{
-    'pwr_init' : -124,
+    # 起始功率
+    'pwr_init' : -125,
+    # 粗调精度
     'pwr_coarse' : 0.5,
-    'pwr_fine' : 0.1,
+    # 细调精度
+    'pwr_fine' : 0.2,
     'frame_coarse' : 100,
     'frame_fine' : 200,
     'BER_THRESHOLD' : 5,

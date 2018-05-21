@@ -5,7 +5,7 @@ import pyperclip
 import sys, os, visa, threading, time, string
 from datetime import datetime
 from config_default import config
-from test import handle_instr
+from test import handle_instr_cmw500
 from test import RM_CMW
 
 param_FDCorrection="699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2"
@@ -13,7 +13,7 @@ param_FDCorrection="699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 
 #复制内容到剪贴板
 #pyperclip.copy("hello world")
 #res = m.instr_query("READ:LTE:MEAS:MEValuation:ACLR:AVERage?").strip().split(",")
-class handle_instr_GPRS(handle_instr):
+class handle_instr_GPRS(handle_instr_cmw500):
     
     def GPRS_para_configure(self):
         # *****************************************************************************

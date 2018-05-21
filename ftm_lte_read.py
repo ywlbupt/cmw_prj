@@ -8,7 +8,7 @@ import pyperclip
 import sys, os, visa, threading, time, string
 from datetime import datetime
 from config_default import config
-from test import handle_instr
+from test import handle_instr_cmw500
 from test import RM_CMW
 
 from package.logHandler import LogHandler
@@ -23,9 +23,9 @@ if __name__ == '__main__':
         time_start = time.time()
         rm = RM_CMW()
         if "dev_ip" in config:
-            m = handle_instr(rm.open_resource("TCPIP0::{0}::inst0::INSTR".format(config["dev_ip"])))
+            m = handle_instr_cmw500(rm.open_resource("TCPIP0::{0}::inst0::INSTR".format(config["dev_ip"])))
         elif "gpib" in config:
-            m = handle_instr(rm.open_resource("GPIB0::{0}::INSTR".format(config["gpib"])))
+            m = handle_instr_cmw500(rm.open_resource("GPIB0::{0}::INSTR".format(config["gpib"])))
         else:
             m = None
         if m:
