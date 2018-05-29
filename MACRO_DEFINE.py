@@ -116,22 +116,26 @@ test_item_map = {
         2   :   ( "sensm_max",["BAND","UL_Ch","BW","sensm_max"] ),
         3   :   ( "sensd",["BAND","UL_Ch","BW","sensd"] ),
         4   :   ( "sensm_cloop",["BAND","UL_Ch","BW","sensm_cloop"] ),
+        5   :   ( "tx_curr",["BAND","UL_Ch","BW","tx_cur_max","tx_cur_min", "delta"] ),
+        
     },
     "WCDMA" :{
         1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
         2   :   ( "sensm_max",["BAND","UL_Ch","sensm_max"] ),
         3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
         4   :   ( "sensm_cloop",["BAND","UL_Ch","sensm_cloop"] ),
+        5   :   ( "tx_curr",["BAND","UL_Ch","tx_cur_max","tx_cur_min", "delta"] ),
     },
     "TDSC" :{
         1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),
         2   :   ( "sensm",["BAND","UL_Ch","sensm"] ),
         3   :   ( "sensd",["BAND","UL_Ch","sensd"] ),
+        5   :   ( "tx_curr",["BAND","UL_Ch","tx_cur_max","tx_cur_min", "delta"] ),
     },
     "GSM"   :{
         1   :   ( "switch_spetrum", ["BAND","CH","-400KHz","PWR","+400KHz"] ),
         2   :   ( "sensm",          ["BAND","CH","sensm"] ),
         3   :   ( "sensd",          ["BAND","CH","sensd"] ),
+        5   :   ( "tx_curr",["BAND","CH","tx_cur_max","tx_cur_min", "delta"] ),
     },
 }
-

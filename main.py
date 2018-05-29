@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import sys, os, visa, threading, time, string
+import re
 from datetime import datetime
 
 from band_def import TEST_LIST
 from instr import handle_instr
 from MACRO_DEFINE import *
+from instr_66319D import handle_instr_66319D
 
 from config_default import param_FDCorrection
 from config_default import config
@@ -14,8 +16,8 @@ from config_default import SENSE_PARAM
 from adb import adb
 
 from package.logHandler import LogHandler
-import logging
-log = LogHandler("test_log", level = logging.DEBUG)
+# import logging
+# log = LogHandler("test_log", level = logging.DEBUG)
 # log.info("test log")
 
 #import msvcrt
@@ -29,6 +31,13 @@ class ConnectionError(Exception):
     pass
 
 class handle_instr_cmw500(handle_instr):
+    instr_name_p = re.compile ("Rohde&Schwarz.*CMW.*")
+
+    def __init__(self, instr_socall_addr, phone_hd=None):
+        super().__init__(instr_socall_addr)
+        self.phone_hd=phone_hd
+        self.device_A66319D = None
+    
     def instr_reset_cmw(self):
         self.instr_write("*RST;*OPC")
         self.instr_write("*CLS;*OPC?")
@@ -38,9 +47,6 @@ class handle_instr_cmw500(handle_instr):
         # self.instr_write("SYSTem:PRESet:ALL")
         print("instr reset.......")
         time.sleep(4)
-
-    def get_instr_version(self):
-        return self.instr_query("*IDN?",delay = 5).strip()
 
     def set_remote_display(self, state=True):
         if state:
@@ -62,6 +68,14 @@ class handle_instr_cmw500(handle_instr):
             self.instr_write ("CONFigure:FDCorrection:ACTivate RF1C, 'CMW_loss', RXTX, RF1")
             self.instr_write ("CONFigure:FDCorrection:ACTivate RF1O, 'CMW_loss', RXTX, RF1")
 
+    def __LTE_get_fdd_or_tdd(self, dd_int):
+        if isinstance (dd_int, str):
+            dd_int = int(dd_int)
+        if dd_int < 33 or dd_int == 66:
+            return "FDD"
+        else:
+            return "TDD"
+
     def LTE_para_configure(self,md,test_list):
         if self.LWGT_check_connection(md):
             self.LWGT_set_dl_pwr(md)
@@ -72,7 +86,8 @@ class handle_instr_cmw500(handle_instr):
             self.instr_write ("SOURce:LTE:SIGN:CELL:STATe OFF")
             self.instr_reset_cmw()
             self.set_FDCorrection(param_FDCorrection)
-            test_DD = "FDD" if int(test_list[0].BAND[2:])<33 else "TDD"
+            # test_DD = "FDD" if int(test_list[0].BAND[2:])<33 or  else "TDD"
+            test_DD = self.__LTE_get_fdd_or_tdd(int(test_list[0].BAND[2:])<33)
             self.instr_write ("CONFigure:LTE:SIGN:DMODe {DD}".format(DD=test_DD))
             self.instr_write ("CONFigure:LTE:SIGN:PCC:BAND {band}".format(band=test_list[0].BAND))
             self.instr_write ("CONFigure:LTE:SIGN:RFSettings:CHANnel:UL {0}".format(test_list[0].CH_UL))
@@ -83,7 +98,7 @@ class handle_instr_cmw500(handle_instr):
         while self.instr_query("SOURce:LTE:SIGN:CELL:STATe:ALL?").strip() != "ON,ADJ":
             time.sleep(1)
         self.instr_write ("CONFigure:LTE:MEAS:MEValuation:REPetition SINGleshot")
-        # �����
+        # 最大功率
         self.LWGT_set_ul_pwr(md, pwr="MAX")
 
     def LWGT_set_dl_pwr(self, md, pwr=None):
@@ -104,6 +119,35 @@ class handle_instr_cmw500(handle_instr):
                 pwr = -80
             self.instr_write("CONFigure:GSM:SIGN:RFSettings:LEVel:TCH {pwr}".format(pwr=pwr))
 
+    def LWGT_meas_curr(self, md, m_66319D):
+        res = []
+        res_list = []
+        mea_len = 10
+        # test_status = ["MAX", "MIN"]
+        test_status = {
+            "LTE" : [22, "MIN"],
+            "WCDMA" : [23, "MIN"],
+            "GSM" : ["MAX", "MIN"],
+            "TDSC" : [23, "MIN"],
+        }
+        for j,st in enumerate(test_status[md]):
+            # self.LWGT_set_ul_pwr(md, pwr=st)
+            if md != "GSM":
+                getattr(self, MD_MAP[md]+"_meas_aclr")(pwr=st)
+            else:
+                self.GSM_meas_ssw(pwr=st)
+
+            time.sleep(2)
+            for i in range(mea_len):
+                time.sleep(0.5)
+                temp = m_66319D.instr_get_DC_current()
+                print("{0}, ".format(temp),end="",flush =True)
+                res_list.append(temp)
+            print("")
+            res.append(round(sum(res_list[mea_len*j:mea_len*(j+1)])/mea_len,4))
+            print("{0} Average: {1}".format(st,res[j]))
+        return (res[0], res[1], round(res[0]-res[1],4))
+
     def LWGT_set_ul_pwr(self, md, pwr):
         def WT_set_ul_pwr(md, pwr="MAX"):
             confirm_res = { "MAX":  "MAXP", "MIN":  "MINP", }
@@ -117,6 +161,7 @@ class handle_instr_cmw500(handle_instr):
                 self.instr_write("CONFigure:{md}:SIGN:UL:TPC:SET CLOop".format(md=md))
             else:
                 return
+            time.sleep(1)
             for i in range(10):
                 res_tpc = self.instr_query("CONFigure:{md}:SIGN:UL:TPC:STATe?".format(md=md)).strip()
                 if res_tpc == "IDLE" or res_tpc == confirm_res.get(pwr,"TPL"):
@@ -125,9 +170,14 @@ class handle_instr_cmw500(handle_instr):
                 time.sleep(0.5)
         
         def GSM_set_ul_pwr(md, pwr="MAX"):
+            # GSM set pcl
             if pwr == "MAX":
                 present_state = self.LWGT_get_state(md)
                 pcl = 5 if present_state.g_BAND in ("G085","G09") else 0
+                self.instr_write("CONFigure:GSM:SIGN:RFSettings:PCL:TCH:CSWitched {pcl}".format(pcl = pcl))
+            elif pwr == "MIN":
+                present_state = self.LWGT_get_state(md)
+                pcl = 19 if present_state.g_BAND in ("G085","G09") else 15
                 self.instr_write("CONFigure:GSM:SIGN:RFSettings:PCL:TCH:CSWitched {pcl}".format(pcl = pcl))
             elif isinstance(pwr, int):
                 self.instr_write("CONFigure:GSM:SIGN:RFSettings:PCL:TCH:CSWitched {pcl}".format(pcl = pwr))
@@ -136,10 +186,14 @@ class handle_instr_cmw500(handle_instr):
 
         def LTE_set_ul_pwr(md, pwr="MAX"):
             if pwr == "MAX":
-                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:SET MAXPower")
-            elif isinstance(pwr, (int,float)):
-                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:CLTPower {pwr}".format(pwr=pwr))
                 self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:SET CLOop")
+                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:SET MAXPower")
+            elif pwr == "MIN":
+                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:SET CLOop")
+                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:SET MINPower")
+            elif isinstance(pwr, (int,float)):
+                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:SET CLOop")
+                self.instr_write("CONFigure:LTE:SIGN:UL:PUSCh:TPC:CLTPower {pwr}".format(pwr=pwr))
             else:
                 return 
 
@@ -380,8 +434,10 @@ class handle_instr_cmw500(handle_instr):
     def LTE_ch_redirection(self, dest_state):
         md = "LTE"
         last_state = self.LWGT_get_state(md)
-        dest_DD = "FDD" if int(dest_state.BAND[2:])<33 else "TDD"
-        last_DD = "FDD" if int(last_state.BAND[2:])<33 else "TDD"
+        # dest_DD = "FDD" if int(dest_state.BAND[2:])<33 else "TDD"
+        dest_DD = self.__LTE_get_fdd_or_tdd(dest_state.BAND[2:])
+        # last_DD = "FDD" if int(last_state.BAND[2:])<33 else "TDD"
+        last_DD = self.__LTE_get_fdd_or_tdd(last_state.BAND[2:])
 
         if dest_DD == last_DD:
             if dest_state.BAND == last_state.BAND:
@@ -446,6 +502,10 @@ class handle_instr_cmw500(handle_instr):
             self.LWGT_connect(md)
         if "aclr" in mea_item:
             output_res["aclr"]=self.LTE_meas_aclr()
+        if "tx_curr" in mea_item:
+            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
+            output_res["tx_curr"]=self.LWGT_meas_curr(md ,m_66319D)
+            m_66319D.instr_close()
         if "sensm_max" in mea_item:
             output_res["sensm_max"]=self.LTE_meas_sense(route_path="main",ul_pwr="MAX")
         if "sensm_cloop" in mea_item:
@@ -454,7 +514,7 @@ class handle_instr_cmw500(handle_instr):
             output_res["sensd"]=self.LTE_meas_sense(route_path="div", ul_pwr = "MAX")
         return output_res
 
-    def LTE_meas_aclr(self):
+    def LTE_meas_aclr(self, pwr = "MAX"):
         md = "LTE"
         test_DD = self.instr_query("CONFigure:LTE:SIGN:DMODe?").strip()
         if test_DD == "FDD":
@@ -462,7 +522,7 @@ class handle_instr_cmw500(handle_instr):
         else:
             self.instr_write("CONFigure:LTE:MEAS:MEValuation:MSUBframes 2,10,0")
 
-        self.LWGT_set_ul_pwr(md, pwr="MAX")
+        self.LWGT_set_ul_pwr(md, pwr)
         time.sleep(1)
         self.instr_write("INITiate:LTE:MEAS:MEValuation")
         while self.instr_query("FETCh:LTE:MEAS:MEValuation:STATe:ALL?").strip() != "RDY,ADJ,INV":
@@ -471,6 +531,7 @@ class handle_instr_cmw500(handle_instr):
         res = tuple(round(float(res[i]),2) for i in [2,3,4,5,6] )
         print(res)
         self.instr_write("ABORt:LTE:MEAS:MEValuation")
+        time.sleep(1)
         return res
 
     def LTE_meas_sense(self,route_path="main", ul_pwr="MAX"):
@@ -515,9 +576,6 @@ class handle_instr_cmw500(handle_instr):
                 return cell_pwr, ber
         else: 
             raise ConnectionError
-
-    def LTE_meas_ulcaalcr(self,md,ulca_info):
-        pass
 
     def LWGT_sense_alg(self,md):
         pwr_init = SENSE_PARAM[md]['pwr_init']
@@ -640,6 +698,10 @@ class handle_instr_cmw500(handle_instr):
 
         if "switch_spetrum" in mea_item:
             output_res["switch_spetrum"]=self.GSM_meas_ssw()
+        if "tx_curr" in mea_item:
+            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
+            output_res["tx_curr"]=self.LWGT_meas_curr(md, m_66319D)
+            m_66319D.instr_close()
         if "sensm" in mea_item:
             output_res["sensm"]=self.GSM_meas_sense(route_path = "main")
         if "sensd" in mea_item:
@@ -691,9 +753,9 @@ class handle_instr_cmw500(handle_instr):
         else: 
             raise ConnectionError
 
-    def GSM_meas_ssw(self):
+    def GSM_meas_ssw(self, pwr = "MAX"):
         md = "GSM"
-        self.LWGT_set_ul_pwr(md, pwr="MAX")
+        self.LWGT_set_ul_pwr(md, pwr)
         time.sleep(1)
         self.instr_write("INITiate:GSM:MEAS:MEValuation")
         while self.instr_query("FETCh:GSM:MEAS:MEValuation:STATe:ALL?").strip() != "RDY,ADJ,INV":
@@ -803,9 +865,12 @@ class handle_instr_cmw500(handle_instr):
         if not self.LWGT_check_connection(md):
             print("Not connected")
             self.LWGT_connect(md)
-
         if "aclr" in mea_item:
             output_res["aclr"] = self.WT_meas_aclr(md)
+        if "tx_curr" in mea_item:
+            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
+            output_res["tx_curr"]=self.LWGT_meas_curr(md, m_66319D)
+            m_66319D.instr_close()
         if "sensm_max" in mea_item:
             output_res["sensm_max"] = self.WT_meas_sense(md, route_path="main",pwr="MAX")
         if "sensm_cloop" in mea_item:
@@ -817,7 +882,7 @@ class handle_instr_cmw500(handle_instr):
                 output_res["sensd"] = self.WT_meas_sense(md,route_path="div")
         return output_res
 
-    def WT_meas_aclr(self, md):
+    def WT_meas_aclr(self, md, pwr = "MAX"):
         # self.instr_write("CONFigure:WCDMa:SIGN:UL:TPC:SET ALL1")
         self.LWGT_set_ul_pwr(md, pwr="MAX")
         self.instr_write("INITiate:{0}:MEAS:MEValuation".format(md))
@@ -831,7 +896,6 @@ class handle_instr_cmw500(handle_instr):
             for i in [2,3,4,5]:
                 res[i] = float(res[i]) - float(res[1])
             res = tuple(round(float(res[i]),2) for i in [2,3,13,4,5] )
-        # print("print before aclr")
         print(res)
         return res
 
@@ -875,8 +939,27 @@ class handle_instr_cmw500(handle_instr):
         self.set_FDCorrection(param_FDCorrection)
         getattr(self,MD_MAP[md]+"_para_configure")(md, TEST_LIST[md])
         self.LWGT_connect(md)
+        # TODO 可加入电源设备管理
         mea_item = [test_item_map[md][i][0] for i in config[md]['test_item']]
         self.LWGT_ch_travel(md , TEST_LIST[md], mea_item)
+
+def device_scan(cls, config_gpib_key):
+    if config_gpib_key in config:
+        instr_addr = "GPIB0::{0}::INSTR".format(config[config_gpib_key])
+    else:
+        instr_addr = None
+
+    if cls.instr_addr_check(instr_addr):
+        print("{0} check OK".format(cls.__name__))
+        return instr_addr
+    else:
+        instr_addr= cls.get_gpib_addr()
+        if not instr_addr:
+            print("Cannot Find {0}".format(cls.__name__))
+            return None
+        else:
+            print("{0} find another addr OK".format(cls.__name__))
+            return instr_addr
 
 
 if __name__ == '__main__':
@@ -885,11 +968,21 @@ if __name__ == '__main__':
         time_start = time.time()
         phone = adb()
         # phone.adb_reboot()
+        # if "ip_cmw500" in config:
+            # m = handle_instr_cmw500("TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"]),phone)
+        # elif "gpib_cmw500" in config:
+            # m = handle_instr_cmw500("GPIB0::{0}::INSTR".format(config["gpib_cmw500"]), phone)
+        # else:
+            # m = None
 
-        if "dev_ip" in config:
-            m = handle_instr_cmw500("TCPIP0::{0}::inst0::INSTR".format(config["dev_ip"]))
-        elif "gpib" in config:
-            m = handle_instr_cmw500("GPIB0::{0}::INSTR".format(config["gpib"]))
+        if "ip_cmw500" in config:
+            cmw_addr = "TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"])
+        else:
+            cmw_addr = device_scan(handle_instr_cmw500, "gpib_cmw500")
+        # print( device_scan(handle_instr_66319D, "gpib_addr_66319D"))
+
+        if cmw_addr:
+            m = handle_instr_cmw500(cmw_addr , phone)
         else:
             m = None
         if m:
@@ -902,7 +995,7 @@ if __name__ == '__main__':
                 if i+1 < len(config['TEST_RF']) :
                     if config['TEST_RF'][i] != config['TEST_RF'][i+1]:
                         m.LWGT_disconnect_off(md,state_on=False)
-            m.instr_close()
+            m.instr_rm_close()
     finally:
         time_end = time.time()
         print("time elaped {0}:{1}".format(int(time_end-time_start)//60, int(time_end-time_start)%60))

@@ -11,10 +11,11 @@ from datetime import datetime
     # m = handle_instr_cmw500("GPIB0::{0}::INSTR"".format(config["gpib"]))
 
 class handle_instr():
-    def __init__(self, instr_socall_addr, phone_hd=None):
+    instr_name_p = "not a device name is ok"
+
+    def __init__(self, instr_socall_addr):
         self.rm = visa.ResourceManager()
         self.instr=self.rm.open_resource(instr_socall_addr)
-        self.phone_hd=phone_hd
 
     def instr_write(self, *args, **kwargs):
         try:
@@ -34,6 +35,47 @@ class handle_instr():
             m = self.instr.query(*args,**kwargs)
         return m
 
+    def get_instr_version(self):
+        return self.instr_query("*IDN?",delay = 5).strip()
+
+    @classmethod
+    def get_rm_list_resource(cls):
+        rm = visa.ResourceManager()
+        rs_list = rm.list_resources()
+        rm.close()
+        return rs_list
+
+    @classmethod
+    def get_gpib_addr(cls):
+        devices_list = cls.get_rm_list_resource()
+        for instr_addr in devices_list:
+            instr = handle_instr(instr_addr)
+            instr_info = instr.get_instr_version()
+            instr.instr_close()
+            m=cls.instr_name_p.match(instr_info)
+            if m:
+                return instr_addr
+        return None
+
+    @classmethod
+    def instr_addr_check(cls, instr_addr):
+        devices_list = cls.get_rm_list_resource()
+        if instr_addr in devices_list:
+            instr = handle_instr(instr_addr)
+            instr_info = instr.get_instr_version()
+            instr.instr_close()
+            m=cls.instr_name_p.match(instr_info)
+            if m:
+                return True
+            else:
+                return False
+        else:
+            return False
+
     def instr_close(self):
         self.instr.close()
+
+    def instr_rm_close(self):
+        self.instr.close()
         self.rm.close()
+

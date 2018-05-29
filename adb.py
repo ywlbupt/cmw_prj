@@ -39,6 +39,6 @@ class adb():
 
 if __name__ == "__main__":
     m = adb()
-    m.get_device_series()
+    print(m.get_device_series())
     # m.adb_reboot()
     pass

@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-GPIB_ADDR_NUM = 5
 from instr import handle_instr
+import re
 
-tmp_gpib_addr="GPIB0::5::INSTR"
 
 class handle_instr_66319D(handle_instr):
+    instr_name_p = re.compile ("Agilent.*66319D.*")
+
     def instr_reset(self):
         pass
 
@@ -29,10 +30,15 @@ class handle_instr_66319D(handle_instr):
         dc_volt = round(float(self.instr_query("MEAS:VOLT:DC?").strip()),3)
         return dc_volt
 
+
 if __name__ == "__main__":
-    m = handle_instr_66319D(tmp_gpib_addr)
+    # tmp_gpib_addr="GPIB0::5::INSTR"
+    # m = handle_instr_66319D(tmp_gpib_addr)
     # m.instr_OUTPUT_ONOFF(True)
-    print(m.instr_get_DC_current())
-    print(m.instr_get_dc_volt())
-    m.instr_close()
+    # print(m.instr_get_DC_current())
+    # print(m.instr_get_dc_volt())
+    # print(m.get_instr_version())
+    # m.instr_rm_close()
+    # print(handle_instr_66319D.get_gpib_addr())
+    print(handle_instr_66319D.instr_addr_check("GPIB0::5::INSTR"))
     pass

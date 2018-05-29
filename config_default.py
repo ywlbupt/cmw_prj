@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Dependency:
+# pip install pyvisa
+
 # B41 宽频段范围选项
 
 # 插损设置 , (Ouput, Input, Loss TAble)
@@ -8,8 +11,10 @@ param_FDCorrection=(0,0,"699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000
 # param_FDCorrection="699000000, 30, 2700000000, 30"
 
 config = {
-    'dev_ip'    :   "192.168.0.2",
-    # 'gpib'      :   20 ,
+    'ip_cmw500'    :   "192.168.0.2",
+    # 'gpib_cmw500'      :   10 ,
+    
+    'gpib_addr_66319D' : 5,
 
     # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC
     "TEST_RF"   :   (1,),
@@ -18,29 +23,32 @@ config = {
         'usr_define' :   False,
         # 测试 Band
         # 'band'  :   (1,2,3,4,5,7,8,12,13,17,18,19,20,25,26,28,30,34,38,39,40,41,),
-        'band'  :   (41,41,38,38),
+        'band'  :   (66,66),
+        # 'band'  :   (41,41,38,38),
         # BW:   5, 10, 20
         'bw'    :   (0,1,0),
         # 高中低信道
         'lmh'   :   (1,1,1),
-        # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20， 小功率
-        'test_item'     :   (1,3,),
+        # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20，小功率 5：大小功率电流
+        'test_item'     :   (3,),
         'data_save'     :   r"./lte_data.txt",
+        # RB, NS, 
     },
     'WCDMA' :{
         'band'  :   (1,2,5,8,3,4,6,9,19,),
         'lmh'   :   (1,1,1),
-        # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20 小功率灵敏度
-        'test_item'     :   (1,),
+        # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20 小功率灵敏度 5: 大小功率电流
+        'test_item'     :   (1,5),
         # WCDMA 有 分集的通路
         'div-support'   :   (1,2,5,8),
         'data_save'     :   r"./wcdma_data.txt",
+        # Voice, test mode A
     },
     'GSM'   :{
-        'band'  :   (5,8,3,5,8,3),
+        'band'  :   (2,5,8,3),
         'lmh'   :   (1,1,1),
-        # 1 : Switch Spectrum, 2: Sensm , 3:sensd
-        'test_item'     :   (1,),
+        # 1 : Switch Spectrum, 2: Sensm , 3:sensd , 5: 大小功率电流
+        'test_item'     :   (1,5),
         'WITHSIM'   :   True,
         # 1: Call from CMW , 0: Call from phone
         'call_type' :   1,
@@ -50,10 +58,10 @@ config = {
         'data_save'     :   r"./gsm_data.txt",
     },
     'TDSC'  :{
-        'band'  :   (34,39,34,39),
+        'band'  :   (34,39),
         'lmh'   :   (1,1,1),
-        # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3
-        'test_item'     :   (1,),
+        # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3 5:大小功率电流
+        'test_item'     :   (1,5),
         'data_save'     :   r"./td_data.txt",
     },
     'Report_file'   : "Report",
@@ -83,7 +91,7 @@ SENSE_PARAM = {
     # 细调精度
     'pwr_fine' : 0.2,
     'frame_coarse' : 100,
-    'frame_fine' : 200,
+    'frame_fine' : 300,
     'BER_THRESHOLD' : 5,
     },
     "WCDMA":{
