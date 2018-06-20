@@ -3,20 +3,21 @@
 
 # Dependency:
 # pip install pyvisa
+# 运行，cmd命令行下运行： python main.py
 
 # B41 宽频段范围选项
 
 # 插损设置 , (Ouput, Input, Loss TAble)
-param_FDCorrection=(0,0,"699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2")
+param_FDCorrection=(0, 0,
+                    "699000000, 0.6, 960000000, 0.6, 1710000000, 1.0,2170000000, 1.0, 2300000000, 1.2, 2535000000, 1.2, 2700000000, 1.2")
 # param_FDCorrection="699000000, 30, 2700000000, 30"
 
 config = {
     'ip_cmw500'    :   "192.168.0.2",
     # 'gpib_cmw500'      :   10 ,
-    
     'gpib_addr_66319D' : 5,
 
-    # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC
+    # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC, 5:LTE_CA
     "TEST_RF"   :   (1,),
     'LTE' : {
         # use for 辐射耦合Desense测试，CMW500辐射测试不稳定，放弃
@@ -25,7 +26,7 @@ config = {
         # 'band'  :   (1,2,3,4,5,7,8,12,13,17,18,19,20,25,26,28,30,34,38,39,40,41,),
         'band'  :   (66,66),
         # 'band'  :   (41,41,38,38),
-        # BW:   5, 10, 20
+        # 带宽BW:   5, 10, 20
         'bw'    :   (0,1,0),
         # 高中低信道
         'lmh'   :   (1,1,1),
@@ -63,6 +64,11 @@ config = {
         # aclr:1, MaxPower Sens main :2, Maxpower Sens div :3 5:大小功率电流
         'test_item'     :   (1,5),
         'data_save'     :   r"./td_data.txt",
+    },
+    'LTE_CA':{
+        'band' : ("1A+18A", "1A+19A", "B1A+20A", "B41C", "B40C"),
+        # Throughput:1, 
+        'test_item'     :   (1,),
     },
     'Report_file'   : "Report",
 }

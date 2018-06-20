@@ -88,6 +88,7 @@ standard_map = {
     2   :   "WCDMA",
     3   :   "GSM",
     4   :   "TDSC",
+    5   :   "LTE_CA",
 }
 
 wt_band_map = {
@@ -117,7 +118,6 @@ test_item_map = {
         3   :   ( "sensd",["BAND","UL_Ch","BW","sensd"] ),
         4   :   ( "sensm_cloop",["BAND","UL_Ch","BW","sensm_cloop"] ),
         5   :   ( "tx_curr",["BAND","UL_Ch","BW","tx_cur_max","tx_cur_min", "delta"] ),
-        
     },
     "WCDMA" :{
         1   :   ( "aclr", ["BAND","UL_Ch","ACLR_l2","ACLR_l1","PWR","ACLR_r1","ACLR_r2"]),

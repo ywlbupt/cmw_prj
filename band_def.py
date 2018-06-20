@@ -38,6 +38,11 @@ def new_lte_test_list(cfg, priority = 'bw'):
                             test_list.append(ue_struct_l(LTE_Calc.get_cmwband_name(i),ch_ul,LTE_Calc.get_lte_ch_ul2dl(i, ch_ul), cmw_bw))
     return test_list
 
+def lte_ca_test_list(cfg):
+    test_list=[]
+    return test_list
+    pass
+
 def wcdma_test_list(cfg):
     test_list=[]
     for i in cfg['WCDMA']['band']:
@@ -55,7 +60,6 @@ def tdsc_test_list(cfg):
             if lmh_enable:
                 test_list.append(ue_struct_t(band[0],band[1][j]))
     return test_list
-
 
 def gsm_test_list(cfg):
     test_list = []
@@ -82,9 +86,6 @@ TEST_LIST = {
 }
 
 if __name__ == "__main__":
-    for i in TEST_LIST["LTE"]:
-        print(i)
-    # for i in TEST_LIST_W:
+    # for i in TEST_LIST["LTE"]:
         # print(i)
-    # md = "WCDMA"
-    # print([wt_band_map[i][0] for i in config[md].get("div-support", ())])
+    pass

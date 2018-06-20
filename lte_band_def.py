@@ -55,6 +55,20 @@ LTE_BW_SUPPORT={
     66: LTE_BW_MAP(1,1,1,1,1,1),
 }
 
+# 2DL_CA_Contiguous without ULCA
+# 100+25, 100+50, 75+75, 100+75, 100+100
+# ul_configuration of full RB
+LTE_2DLCA_Intra_Congtiguous = {
+    "1C" : (0,0,1,0,1),
+    "3C" : (1,1,0,1,1),
+    "7C" : (0,0,1,0,1),
+    "38C" : (0,0,1,0,1),
+    "39C" : (1,1,0,1,0),
+    "40C" : (0,1,1,1,1),
+    "41C" : (0,1,1,1,1),
+    "42C" : (1,1,0,1,1),
+    "66C" : (1,1,1,1,1),
+}
 
 LTE_UDL_MAP = namedtuple("LTE_UDL_MAP",['freq_ul_l','freq_ul_h','freq_dl_l','freq_dl_h',
                                         'ch_ul_l'  ,'ch_ul_h'  ,'ch_dl_l'  ,'ch_dl_h'])
@@ -124,6 +138,7 @@ class LTE_Calc():
     def get_freq_ch(cls,band_num):
         return LTE_UDL[band_num]
 
+    # 判断 BAND 是否支持 BW
     @classmethod
     def get_band_support(cls, band_num, bw):
         return getattr(LTE_BW_SUPPORT[band_num],bw)
@@ -138,9 +153,20 @@ class LTE_Calc():
         if getattr(LTE_BW_SUPPORT[band_num],bw):
             band_info = LTE_UDL[band_num]
             sep = cls.bw_ch_gap_map[bw]
+            return(band_info.ch_dl_l+sep,round((band_info.ch_dl_l+band_info.ch_dl_h+1)/2), band_info.ch_dl_h-sep+1)
+        else:
+            return None
+
+    # bw 这里可以是 字符串"1p4"，也可以是数字 1.4
+    @classmethod
+    def get_bw_dl_lmh_ch(cls,band_num, bw):
+        if getattr(LTE_BW_SUPPORT[band_num],bw):
+            band_info = LTE_UDL[band_num]
+            sep = cls.bw_ch_gap_map[bw]
             return(band_info.ch_ul_l+sep,round((band_info.ch_ul_l+band_info.ch_ul_h+1)/2), band_info.ch_ul_h-sep+1)
         else:
             return None
+
     @classmethod
     def get_lte_ch_ul2dl(cls, band_num, ch_ul):
         return ch_ul-LTE_UDL[band_num].ch_ul_l+LTE_UDL[band_num].ch_dl_l
@@ -153,12 +179,25 @@ class LTE_Calc():
         else:
             return None
 
+class LTE_Calc_ca(LTE_Calc):
+    def __init__():
+        pass
+
 if __name__ == "__main__":
     print(LTE_Calc.get_bw_ul_lmh_ch(38, LTE_BW_10))
+    print(LTE_Calc.get_bw_dl_lmh_ch(38, LTE_BW_10))
     print(LTE_Calc.get_bw_ul_lmh_ch(41, LTE_BW_20))
+    print(LTE_Calc.get_bw_dl_lmh_ch(41, LTE_BW_20))
     print(LTE_Calc.get_bw_ul_lmh_ch(5,  LTE_BW_10))
+    print(LTE_Calc.get_bw_dl_lmh_ch(5,  LTE_BW_10))
     print(LTE_Calc.get_bw_ul_lmh_ch(4,  LTE_BW_10))
+    print(LTE_Calc.get_bw_dl_lmh_ch(4,  LTE_BW_10))
     print(LTE_Calc.get_bw_ul_lmh_ch(1,  LTE_BW_10))
+    print(LTE_Calc.get_bw_dl_lmh_ch(1,  LTE_BW_10))
+    print(LTE_Calc.get_bw_dl_lmh_ch(3,  LTE_BW_5))
+    print(LTE_Calc.get_bw_dl_lmh_ch(3,  LTE_BW_10))
+    print(LTE_Calc.get_bw_dl_lmh_ch(3,  LTE_BW_15))
+    print(LTE_Calc.get_bw_dl_lmh_ch(3,  LTE_BW_20))
     print(list(LTE_Calc.get_arithmetic_ch(41,40290,41190,50)))
     print(LTE_Calc.get_band_support(5, LTE_BW_20))
     pass

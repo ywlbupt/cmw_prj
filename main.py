@@ -587,7 +587,7 @@ class handle_instr_cmw500(handle_instr):
 
         meas_func = getattr (self, MD_MAP[md]+"_meas_sense_cell")
 
-        # init, coarse, pwr_back, fine, pwr_back_fine, end
+        #state machine: init, coarse, pwr_back, fine, pwr_back_fine, end
         EBL_state = "init"
         while EBL_state != "end":
             if EBL_state == "init":
@@ -967,13 +967,6 @@ if __name__ == '__main__':
     try:
         time_start = time.time()
         phone = adb()
-        # phone.adb_reboot()
-        # if "ip_cmw500" in config:
-            # m = handle_instr_cmw500("TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"]),phone)
-        # elif "gpib_cmw500" in config:
-            # m = handle_instr_cmw500("GPIB0::{0}::INSTR".format(config["gpib_cmw500"]), phone)
-        # else:
-            # m = None
 
         if "ip_cmw500" in config:
             cmw_addr = "TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"])
