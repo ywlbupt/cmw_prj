@@ -27,6 +27,12 @@ from package.logHandler import LogHandler
 
 MD_MAP = {"WCDMA":"WT","TDSC":"WT","LTE":"LTE","GSM":"GSM"}
 
+def printt(*args, **kwargs):
+    if True:
+        print(*args, **kwargs)
+    else:
+        log.info(*args)
+
 class ConnectionError(Exception):
     pass
 
