@@ -10,6 +10,7 @@ from MACRO_DEFINE import LTE_BW_15
 from MACRO_DEFINE import LTE_BW_20
 
 LTE_BW_MAP = namedtuple("LTE_BW_MAP",[LTE_BW_1P4,LTE_BW_3,LTE_BW_5,LTE_BW_10,LTE_BW_15,LTE_BW_20])
+
 # 1p4, 3, 5, 10, 15, 20
 LTE_BW_SUPPORT={
     1:  LTE_BW_MAP(0,0,1,1,1,1), 
@@ -112,8 +113,8 @@ LTE_UDL={
     38: LTE_UDL_MAP(2570,   2620,   2570,   2620,   37750, 38249, 37750, 38249),
     39: LTE_UDL_MAP(1880,   1920,   1880,   1920,   38250, 38649, 38250, 38649),
     40: LTE_UDL_MAP(2300,   2400,   2300,   2400,   38650, 39649, 38650, 39649),
-    41: LTE_UDL_MAP(2496,   2690,   2496,   2690,   39650, 41589, 39650, 41589),
-    # 41: LTE_UDL_MAP(2535,   2655,   2496,   2690,   40040, 41239, 40040, 41239),
+    # 41: LTE_UDL_MAP(2496,   2690,   2496,   2690,   39650, 41589, 39650, 41589),
+    41: LTE_UDL_MAP(2535,   2655,   2496,   2690,   40040, 41239, 40040, 41239),
     42: LTE_UDL_MAP(3400,   3600,   3400,   3600,   41590, 43589, 41590, 43589),
     43: LTE_UDL_MAP(3600,   3800,   3600,   3800,   43590, 45589, 43590, 45589),
     44: LTE_UDL_MAP(703,    803,    703,    803,    45590, 46589, 45590, 46589),
@@ -188,14 +189,15 @@ class LTE_Calc():
     def get_band_support(cls, band_num, bw):
         return getattr(LTE_BW_SUPPORT[band_num],bw)
 
+    #bw : format LTE_BW_xx or like "B100"
     @classmethod
-    def get_band_ul_rb(cls, band_num, bw):
-        ulrb_str = getattr(LTE_UL_RB_CONFIG[band_num], bw)
+    def get_band_ul_rb(cls, band_num, cmw_bw):
+        ulrb_str = getattr(LTE_UL_RB_CONFIG[band_num], cmw_bw)
         if ulrb_str != "-":
             ulrb_num, ulrb_pos = ulrb_str.split("@")
             return (ulrb_num, ulrb_pos)
         else:
-            return None
+            return (None,None)
 
     @classmethod
     def get_cmwband_name(cls, band_num):
@@ -203,7 +205,7 @@ class LTE_Calc():
 
     # bw 这里可以是 字符串"1p4"，也可以是数字 1.4
     @classmethod
-    def get_bw_ul_lmh_ch(cls,band_num, bw):
+    def get_bw_dl_lmh_ch(cls,band_num, bw):
         if getattr(LTE_BW_SUPPORT[band_num],bw):
             band_info = LTE_UDL[band_num]
             sep = cls.bw_ch_gap_map[bw]
@@ -213,7 +215,7 @@ class LTE_Calc():
 
     # bw 这里可以是 字符串"1p4"，也可以是数字 1.4
     @classmethod
-    def get_bw_dl_lmh_ch(cls,band_num, bw):
+    def get_bw_ul_lmh_ch(cls,band_num, bw):
         if getattr(LTE_BW_SUPPORT[band_num],bw):
             band_info = LTE_UDL[band_num]
             sep = cls.bw_ch_gap_map[bw]
@@ -224,6 +226,19 @@ class LTE_Calc():
     @classmethod
     def get_lte_ch_ul2dl(cls, band_num, ch_ul):
         return ch_ul-LTE_UDL[band_num].ch_ul_l+LTE_UDL[band_num].ch_dl_l
+
+    # bw : format : LTE_BW_3
+    @classmethod
+    def get_bw_to_rb(cls, cmw_bw):
+        rb_map = {
+            LTE_BW_1P4 : 6,
+            LTE_BW_3   : 15,
+            LTE_BW_5   : 25,
+            LTE_BW_10  : 50,
+            LTE_BW_15  : 75,
+            LTE_BW_20  : 100,
+        }
+        return rb_map[cmw_bw]
 
     # 获取等差数列信道，供辐射测试
     @classmethod

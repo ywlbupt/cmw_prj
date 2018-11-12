@@ -3,9 +3,12 @@
 
 import sys, os, visa, threading, time, string
 import re
+import operator
 from datetime import datetime
+from package.logHandler import LogHandler
 
 from band_def import TEST_LIST
+from lte_band_def import LTE_Calc
 from instr import handle_instr
 from MACRO_DEFINE import *
 from instr_66319D import handle_instr_66319D
@@ -15,7 +18,6 @@ from config_default import config
 from config_default import SENSE_PARAM
 from adb import adb
 
-from package.logHandler import LogHandler
 # import logging
 # log = LogHandler("test_log", level = logging.DEBUG)
 # log.info("test log")
@@ -26,6 +28,7 @@ from package.logHandler import LogHandler
 #PM = visa.instrument("GPIB1::20::INSTR")
 
 MD_MAP = {"WCDMA":"WT","TDSC":"WT","LTE":"LTE","GSM":"GSM"}
+LTE_RB_MAP = {}
 
 def printt(*args, **kwargs):
     if True:
@@ -37,12 +40,13 @@ class ConnectionError(Exception):
     pass
 
 class handle_instr_cmw500(handle_instr):
-    instr_name_p = re.compile ("Rohde&Schwarz.*CMW.*")
+    instr_name_p = re.compile (r"Rohde&Schwarz.*CMW.*")
 
     def __init__(self, instr_socall_addr, phone_hd=None):
         super().__init__(instr_socall_addr)
         self.phone_hd=phone_hd
         self.device_A66319D = None
+        self.soft_version = {}
     
     def instr_reset_cmw(self):
         self.instr_write("*RST;*OPC")
@@ -53,6 +57,22 @@ class handle_instr_cmw500(handle_instr):
         # self.instr_write("SYSTem:PRESet:ALL")
         print("instr reset.......")
         time.sleep(4)
+
+    def get_cmw_soft_version(self, md = "LTE"):
+        version_name_p = re.compile(r"CMW_{md}_Sig,V(\d+)\.(\d+)\.(\d+)".format(md = md))
+        version_list= self.instr_query("SYSTem:BASE:OPTion:VERSion?").split(";")
+        for ver in version_list:
+            ver_m = version_name_p.match(ver)
+            if ver_m:
+                return [ int(i) for i in (ver_m.group(1), ver_m.group(2), ver_m.group(3)) ]
+                # return(int(i) for i in ver_m.group[1:4])
+
+    def cmw_soft_version_compare(self, version_vector, require_vector):
+        # operator.ge python3中大于或者等于
+        if operator.ge(version_vector, require_vector):
+            return True
+        else:
+            return False
 
     def set_remote_display(self, state=True):
         if state:
@@ -82,7 +102,7 @@ class handle_instr_cmw500(handle_instr):
         else:
             return "TDD"
 
-    def LTE_para_configure(self,md,test_list):
+    def LTE_para_configure(self, md, test_list):
         if self.LWGT_check_connection(md):
             self.LWGT_set_dl_pwr(md)
             self.set_FDCorrection(param_FDCorrection)
@@ -100,12 +120,22 @@ class handle_instr_cmw500(handle_instr):
             self.instr_write ("CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(test_list[0].BW))
             # bw_str = "CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(dest_state.BW)
         self.instr_write ("ROUTe:LTE:MEAS:SCENario:CSPath 'LTE Sig1'")
+
         self.instr_write ("SOURce:LTE:SIGN:CELL:STATe ON")
+
         while self.instr_query("SOURce:LTE:SIGN:CELL:STATe:ALL?").strip() != "ON,ADJ":
             time.sleep(1)
         self.instr_write ("CONFigure:LTE:MEAS:MEValuation:REPetition SINGleshot")
         # 最大功率
         self.LWGT_set_ul_pwr(md, pwr="MAX")
+
+    def LTE_set_ul_RB(self, rb_num, rb_pos):
+        self.instr_write ("CONFigure:LTE:SIGN:CONNection:PCC:RMC:UL N{rb_num},QPSK,KEEP".format(rb_num = rb_num))
+        self.instr_write ("CONFigure:LTE:SIGN:CONNection:PCC:RMC:RBPosition:UL P{rb_pos}".format(rb_pos = rb_pos))
+        # CONFigure:LTE:SIGN:CONNection:PCC:RMC:UL N12,QPSK,KEEP
+        # CONFigure:LTE:SIGN:CONNection:PCC:RMC:RBPosition:UL P0
+        pass
+
 
     def LWGT_set_dl_pwr(self, md, pwr=None):
         if md=="WCDMA":
@@ -445,6 +475,8 @@ class handle_instr_cmw500(handle_instr):
         # last_DD = "FDD" if int(last_state.BAND[2:])<33 else "TDD"
         last_DD = self.__LTE_get_fdd_or_tdd(last_state.BAND[2:])
 
+        print(last_state)
+
         if dest_DD == last_DD:
             if dest_state.BAND == last_state.BAND:
                 # switch_mode = "redirection"
@@ -452,10 +484,17 @@ class handle_instr_cmw500(handle_instr):
             else:
                 switch_mode = "Handover"
         else:
-            switch_mode = "ENHandover"
-        print(last_state)
+            if self.cmw_soft_version_compare(self.soft_version[md], [3, 5, 10]):
+                # switch_mode = "ENHandover"
+                switch_mode = "ON_And_OFF"
+            else :
+                print("This devices isn't support ENHanced Handover")
+                print("Try reset and Reconnect")
+                # switch_mode = "ON_And_OFF"
+                switch_mode = "ON_And_OFF"
+
         # switch_mode = "redirection"
-        print("Try {sw} to band {st.BAND}, channel {st.CH_UL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
+        print("Try {sw} to band {st.BAND}, channel ul {st.CH_UL},channel dl {st.CH_DL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
         if switch_mode == "redirection":
             # self.instr_write("CONFigure:LTE:SIGN:DL:RSEPre:LEVel -80")
             self.LWGT_set_dl_pwr(md="LTE", pwr=-80)
@@ -473,16 +512,22 @@ class handle_instr_cmw500(handle_instr):
         elif switch_mode == "Handover":
             self.instr_write("PREPare:LTE:SIGN:HANDover:DESTination 'LTE Sig1'")
             self.instr_write("PREPare:LTE:SIGN:HANDover:MMODe HANDover")
-            self.instr_write("PREPare:LTE:SIGN:HANDover:ENHanced {md}, {st.BAND}, {st.CH_DL}, {st.BW}, NS01".format(md=dest_DD, st=dest_state))
+            # self.instr_write("PREPare:LTE:SIGN:HANDover:ENHanced {md}, {st.BAND}, {st.CH_DL}, {st.BW}, NS01".format(md=dest_DD, st=dest_state))
+            self.instr_write("PREPare:LTE:SIGN:HANDover {st.BAND},{st.CH_DL},{st.BW},NS01".format(st=dest_state))
             self.instr_write("CALL:LTE:SIGN:PSWitched:ACTion HANDover")
             time.sleep(2)
-
         elif switch_mode == "ENHandover":
             self.instr_write("PREPare:LTE:SIGN:HANDover:DESTination 'LTE Sig1'")
-            self.instr_write("PREPare:LTE:SIGN:HANDover:MMODe HANDover")
-            self.instr_write("PREPare:LTE:SIGN:HANDover:ENHanced {md}, {st.BAND}, {st.CH_DL}, {st.BW}, NS01".format(md=dest_DD, st=dest_state))
+            # self.instr_write("PREPare:LTE:SIGN:HANDover:MMODe REDirection")
+            print ("PREPare:LTE:SIGN:HANDover:ENHanced {md},{st.BAND},{st.CH_DL},{st.BW},NS01".format(md=dest_DD, st=dest_state))
+            self.instr_write("PREPare:LTE:SIGN:HANDover:ENHanced {md},{st.BAND},{st.CH_DL},{st.BW},NS01".format(md=dest_DD, st=dest_state))
+            time.sleep(2)
             self.instr_write("CALL:LTE:SIGN:PSWitched:ACTion HANDover")
             time.sleep(5)
+        elif switch_mode == "ON_And_OFF":
+            self.LWGT_disconnect_off(md, state_on=False)
+            self.LTE_para_configure(md, (dest_state,))
+            self.LWGT_connect(md)
 
         # check RRC_STATE 
         for i in range(10):
@@ -517,7 +562,8 @@ class handle_instr_cmw500(handle_instr):
         if "sensm_cloop" in mea_item:
             output_res["sensm_cloop"]=self.LTE_meas_sense(route_path="main",ul_pwr=-20)
         if "sensd" in mea_item:
-            output_res["sensd"]=self.LTE_meas_sense(route_path="div", ul_pwr = "MAX")
+            # output_res["sensd"]=self.LTE_meas_sense(route_path="div", ul_pwr = "MAX")
+            output_res["sensd"]=self.LTE_meas_sense(route_path="div", ul_pwr = -20)
         return output_res
 
     def LTE_meas_aclr(self, pwr = "MAX"):
@@ -547,22 +593,38 @@ class handle_instr_cmw500(handle_instr):
 
         self.LWGT_set_dl_pwr(md)
         self.LWGT_set_ul_pwr(md,ul_pwr)
+        state = self.LWGT_get_state(md)
+        if config['LTE']['partRB_rx_Enable']:
+            cmw_bw = state.BW
+            band_num = int((state.BAND)[2:])
+            rb_num, rb_pos = LTE_Calc.get_band_ul_rb(band_num, cmw_bw )
+            if rb_num:
+                self.LTE_set_ul_RB(rb_num, rb_pos)
+
         if route_path == "div":
             self.LWGT_set_port_route(md,"div")
             time.sleep(2)
+
         pwr, ber = self.LWGT_sense_alg(md)
         
         self.LWGT_set_dl_pwr(md)
         if route_path == "div":
             self.LWGT_set_port_route(md,"main")
             time.sleep(2)
+
+        if config['LTE']['partRB_rx_Enable']:
+            rb_num = LTE_Calc.get_bw_to_rb(state.BW)
+            rb_pos = 0
+            # 恢复Full RB 状态
+            self.LTE_set_ul_RB(rb_num, rb_pos)
+
         print("sense {rp} : {pwr}, {ber}".format(rp=route_path, pwr=pwr, ber= ber))
         time.sleep(1)
         return (pwr, ber)
 
     def LTE_meas_sense_cell(self, md, down_level, frame=1000, output_pwr_format="RS_EPRE"):
-        # self.instr_write("CONFigure:LTE:SIGN:DL:RSEPre:LEVel {0}".format(down_level))
         self.LWGT_set_dl_pwr(md, pwr=down_level)
+        # self.instr_write("CONFigure:LTE:SIGN:DL:RSEPre:LEVel {0}".format(down_level))
         self.instr_write("CONFigure:LTE:SIGN:EBLer:SFRames {frame}".format(frame=frame))
 
         self.instr_write("INITiate:LTE:SIGN:EBLer")
@@ -943,6 +1005,7 @@ class handle_instr_cmw500(handle_instr):
 
     def test_main(self, md):
         self.set_FDCorrection(param_FDCorrection)
+        self.soft_version [md] = self.get_cmw_soft_version(md)
         getattr(self,MD_MAP[md]+"_para_configure")(md, TEST_LIST[md])
         self.LWGT_connect(md)
         # TODO 可加入电源设备管理
@@ -957,6 +1020,7 @@ def device_scan(cls, config_gpib_key):
 
     if cls.instr_addr_check(instr_addr):
         print("{0} check OK".format(cls.__name__))
+        print(instr_addr)
         return instr_addr
     else:
         instr_addr= cls.get_gpib_addr()
@@ -965,6 +1029,7 @@ def device_scan(cls, config_gpib_key):
             return None
         else:
             print("{0} find another addr OK".format(cls.__name__))
+            print(instr_addr)
             return instr_addr
 
 
@@ -984,8 +1049,10 @@ if __name__ == '__main__':
             m = handle_instr_cmw500(cmw_addr , phone)
         else:
             m = None
+
         if m:
             print(m.get_instr_version())
+
             m.set_remote_display(state=True)
 
             for i, v in enumerate(config.get('TEST_RF', ())):
