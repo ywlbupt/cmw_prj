@@ -242,10 +242,16 @@ class handle_instr_cmw500(handle_instr):
             total_res[item]=[]
         try:
             for dest_state in test_list:
-                if md in ['WCDMA', "TDSC"]:
-                    self.WT_ch_redirection(md, dest_state)
-                else:
-                    getattr(self, md+"_ch_redirection")(dest_state)
+                try:
+                    if md in ['WCDMA', "TDSC"]:
+                        self.WT_ch_redirection(md, dest_state)
+                    else:
+                        getattr(self, md+"_ch_redirection")(dest_state)
+                except ConnectionError as e:
+                    self.LWGT_disconnect_off(md, state_on=False)
+                    getattr(self,MD_MAP[md]+"_para_configure")(md, TEST_LIST[md])
+                    self.LWGT_connect(md)
+
                 for i in range(3):
                     try:
                         temp = getattr(self, MD_MAP[md]+"_acquire_meas")(md, mea_item)
@@ -483,6 +489,7 @@ class handle_instr_cmw500(handle_instr):
                 switch_mode = "Handover"
             else:
                 switch_mode = "Handover"
+            switch_mode = "redirection"
         else:
             if self.cmw_soft_version_compare(self.soft_version[md], [3, 5, 10]):
                 # switch_mode = "ENHandover"
@@ -493,10 +500,8 @@ class handle_instr_cmw500(handle_instr):
                 # switch_mode = "ON_And_OFF"
                 switch_mode = "ON_And_OFF"
 
-        # switch_mode = "redirection"
         print("Try {sw} to band {st.BAND}, channel ul {st.CH_UL},channel dl {st.CH_DL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
         if switch_mode == "redirection":
-            # self.instr_write("CONFigure:LTE:SIGN:DL:RSEPre:LEVel -80")
             self.LWGT_set_dl_pwr(md="LTE", pwr=-80)
             band_str = "CONFigure:LTE:SIGN:PCC:BAND {0}".format(dest_state.BAND)
             ch_str = "CONFigure:LTE:SIGN:RFSettings:CHANnel:UL {0}".format(dest_state.CH_UL)
@@ -875,6 +880,7 @@ class handle_instr_cmw500(handle_instr):
             print("redirection successful")
         else :
             print("redirection failed")
+            raise ConnectionError
 
     def WT_ch_redirection(self, md, dest_state):
         self.LWGT_set_dl_pwr(md)
