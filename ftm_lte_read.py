@@ -8,12 +8,12 @@ import pyperclip
 import sys, os, visa, threading, time, string
 from datetime import datetime
 from config_default import config
-from test import handle_instr_cmw500
-from test import RM_CMW
+from main import handle_instr_cmw500
 
-from package.logHandler import LogHandler
-import logging
-logger = LogHandler("", level = logging.INFO)
+# from package.logHandler import LogHandler
+# import logging
+#logger = LogHandler("", level = logging.INFO)
+
 # logger.info("tetst")
 
 
@@ -21,11 +21,15 @@ logger = LogHandler("", level = logging.INFO)
 if __name__ == '__main__':
     try:
         time_start = time.time()
-        rm = RM_CMW()
-        if "dev_ip" in config:
-            m = handle_instr_cmw500(rm.open_resource("TCPIP0::{0}::inst0::INSTR".format(config["dev_ip"])))
-        elif "gpib" in config:
-            m = handle_instr_cmw500(rm.open_resource("GPIB0::{0}::INSTR".format(config["gpib"])))
+        if "ip_cmw500" in config:
+            cmw_addr = "TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"])
+        else:
+            cmw_addr = "GPIB0::{0}::INSTR".format(config["gpib_cmw500"])
+            # cmw_addr = device_scan(handle_instr_cmw500, "gpib_cmw500")
+        # print( device_scan(handle_instr_66319D, "gpib_addr_66319D"))
+
+        if cmw_addr:
+            m = handle_instr_cmw500(cmw_addr)
         else:
             m = None
         if m:
@@ -41,8 +45,7 @@ if __name__ == '__main__':
                 if x != "":
                     break
 
-            m.instr_close()
-        rm.close()
+            m.instr_rm_close()
     finally:
         time_end = time.time()
         print("time elaped {0}:{1}".format(int(time_end-time_start)//60, int(time_end-time_start)%60))

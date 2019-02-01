@@ -6,26 +6,23 @@
 # 运行，cmd命令行下运行： python main.py
 
 # B41 宽频段范围选项
-
+# 1,1.7,1.9
 LOSS_CONFIG = {
-    "LOW" : 1,
+    "LOW" : 1.0,
     "MID" : 1.7,
     "HIGH" : 1.9, }
 LOSS_MATRIX =  "699000000, {loss_low}, 960000000, {loss_low},1710000000,{loss_mid},2170000000, {loss_mid},2300000000, {loss_high}, 2700000000, {loss_high}".format(
                         loss_low = LOSS_CONFIG['LOW'], loss_mid = LOSS_CONFIG['MID'], loss_high = LOSS_CONFIG['HIGH'])
 # 插损设置 , (Ouput, Input, Loss TAble)
 param_FDCorrection=(0, 0, LOSS_MATRIX)
-# param_FDCorrection=(0, 0, "699000000, 1, 960000000, 1, 1710000000, 1.7,2170000000, 1.7, 2300000000, 1.9, 2535000000, 1.9, 2700000000, 1.9")
-                    # "699000000, 0.5, 960000000, 0.5, 1710000000, 0.8,2170000000, 0.8, 2300000000, 0.9, 2535000000, 0.9, 2700000000, 0.9")
-# param_FDCorrection="699000000, 30, 2700000000, 30"
 
 config = {
-    # 'ip_cmw500'    :   "192.168.0.10",
+    # 'ip_cmw500'    :   "192.168.0.2",
     'gpib_cmw500'      :   20 ,
     'gpib_addr_66319D' : 5,
 
     # 1:LTE, 2:WCDMA , 3:GSM , 4:TDSC, 5:LTE_CA
-    "TEST_RF"   :   (3,),
+    "TEST_RF"   :   (1,),
     'LTE' : {
         # use for 辐射耦合Desense测试，CMW500辐射测试不稳定，放弃
         'usr_define' :   False,
@@ -33,31 +30,31 @@ config = {
         'partRB_rx_Enable' : False, 
         ## 测试 Band
         # 'band'  :   (1,2,3,4,5,7,8,12,13,17,18,19,20,25,26,28,30,34,38,39,40,41,),
-        'band'  :   (34,38,39,40,41,34,38,39,40,41),
+        'band'  :   (1,),
         # 'band'  :   (38,40,38,40),
         ## 带宽BW:   5, 10, 20
         'bw'    :   (0,1,0),
         ## 高中低信道
         'lmh'   :   (1,1,1),
         ## 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20，小功率 5：大小功率电流
-        'test_item'     :   (1,4,3),
+        'test_item'     :   (1,),
         'data_save'     :   r"./lte_data.txt",
     },
     'WCDMA' :{
-        'band'  :   (1,2,5,8,3,4,6,9,19,),
+        'band'  :   (1,),
         'lmh'   :   (1,1,1),
         # 1:aclr, 2:MaxPower Sens main, 3: Sens div, 4: Sens cloop -20 小功率灵敏度 5: 大小功率电流
-        'test_item'     :   (1,5),
+        'test_item'     :   (1,5,),
         # WCDMA 有 分集的通路
         'div-support'   :   (1,2,5,8),
         'data_save'     :   r"./wcdma_data.txt",
         # Voice, test mode A
     },
     'GSM'   :{
-        'band'  :   (5,8,3,2),
+        'band'  :   (2,2),
         'lmh'   :   (1,1,1),
         # 1 : Switch Spectrum, 2: Sensm , 3:sensd , 5: 大小功率电流
-        'test_item'     :   (1,2,),
+        'test_item'     :   (1,2,3),
         'WITHSIM'   :   True,
         # 1: Call from CMW , 0: Call from phone
         'call_type' :   1,

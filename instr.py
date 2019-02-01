@@ -10,10 +10,34 @@ from datetime import datetime
 # elif "gpib" in config:
     # m = handle_instr_cmw500("GPIB0::{0}::INSTR"".format(config["gpib"]))
 
+def device_scan(cls, gpib_addr_num = None):
+    # gpib_addr_num int type : gpib addr
+    # cls : handle_instr
+    # from instr import handle_instr
+    # 检查 gpib地址，或者扫描gpib
+    if gpib_addr_num:
+        instr_addr = "GPIB0::{0}::INSTR".format(gpib_addr_num)
+    else:
+        instr_addr = None
+    if cls.instr_addr_check(instr_addr):
+        print("{0} check OK".format(cls.__name__))
+        print(instr_addr)
+        return instr_addr
+    else:
+        instr_addr= cls.get_gpib_addr()
+        if not instr_addr:
+            print("Cannot Find {0}".format(cls.__name__))
+            return None
+        else:
+            print("{0} find another addr OK".format(cls.__name__))
+            print(instr_addr)
+            return instr_addr
+
 class handle_instr():
     instr_name_p = "not a device name is ok"
 
     def __init__(self, instr_socall_addr):
+        # instr_socall_addr : gpib or tcpip format addr
         self.rm = visa.ResourceManager()
         self.instr=self.rm.open_resource(instr_socall_addr)
 

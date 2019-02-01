@@ -10,6 +10,7 @@ from package.logHandler import LogHandler
 from band_def import TEST_LIST
 from lte_band_def import LTE_Calc
 from instr import handle_instr
+from instr import device_scan
 from MACRO_DEFINE import *
 from instr_66319D import handle_instr_66319D
 
@@ -53,7 +54,7 @@ class handle_instr_cmw500(handle_instr):
         self.instr_write("*CLS;*OPC?")
         time.sleep(2)
         # preset instr
-        self.instr_write("SYSTem:PRESet:ALL;*OPC")
+        # self.instr_write("SYSTem:PRESet:ALL;*OPC")
         # self.instr_write("SYSTem:PRESet:ALL")
         print("instr reset.......")
         time.sleep(4)
@@ -85,14 +86,14 @@ class handle_instr_cmw500(handle_instr):
         # lossName = self.instr_query ("CONFigure:BASE:FDCorrection:CTABle:CATalog?")
         # if lossName.find ("CMW_loss") != -1:
             # self.instr_write ("CONFigure:BASE:FDCorrection:CTABle:DELete 'CMW_loss'")
-        self.instr_write("CONFigure:LTE:SIGN:RFSettings:EATTenuation:OUTPut {0}".format(OUTPUT_EAT))
-        self.instr_write("CONFigure:LTE:SIGN:RFSettings:EATTenuation:INPut {0}".format(INPUT_EAT))
-
         self.instr_write("CONFigure:BASE:FDCorrection:CTABle:DELete:ALL")
         if loss_matrix :
             self.instr_write("CONFigure:BASE:FDCorrection:CTABle:CREate 'CMW_loss', {loss_matrix}".format(loss_matrix=loss_matrix))
             self.instr_write ("CONFigure:FDCorrection:ACTivate RF1C, 'CMW_loss', RXTX, RF1")
             self.instr_write ("CONFigure:FDCorrection:ACTivate RF1O, 'CMW_loss', RXTX, RF1")
+        self.instr_write("CONFigure:LTE:SIGN:RFSettings:EATTenuation:OUTPut {0}".format(OUTPUT_EAT))
+        self.instr_write("CONFigure:LTE:SIGN:RFSettings:EATTenuation:INPut {0}".format(INPUT_EAT))
+
 
     def __LTE_get_fdd_or_tdd(self, dd_int):
         if isinstance (dd_int, str):
@@ -158,6 +159,7 @@ class handle_instr_cmw500(handle_instr):
     def LWGT_meas_curr(self, md, m_66319D):
         res = []
         res_list = []
+        # 取10次平均
         mea_len = 10
         # test_status = ["MAX", "MIN"]
         test_status = {
@@ -169,11 +171,11 @@ class handle_instr_cmw500(handle_instr):
         for j,st in enumerate(test_status[md]):
             # self.LWGT_set_ul_pwr(md, pwr=st)
             if md != "GSM":
-                getattr(self, MD_MAP[md]+"_meas_aclr")(pwr=st)
+                getattr(self, MD_MAP[md]+"_meas_aclr")(md, pwr=st)
             else:
                 self.GSM_meas_ssw(pwr=st)
 
-            time.sleep(2)
+            time.sleep(10)
             for i in range(mea_len):
                 time.sleep(0.5)
                 temp = m_66319D.instr_get_DC_current()
@@ -181,7 +183,7 @@ class handle_instr_cmw500(handle_instr):
                 res_list.append(temp)
             print("")
             res.append(round(sum(res_list[mea_len*j:mea_len*(j+1)])/mea_len,4))
-            print("{0} Average: {1}".format(st,res[j]))
+            print("Pwr {0} Average: {1}".format(st,res[j]))
         return (res[0], res[1], round(res[0]-res[1],4))
 
     def LWGT_set_ul_pwr(self, md, pwr):
@@ -557,7 +559,7 @@ class handle_instr_cmw500(handle_instr):
             print("{md} not connected".format(md=md))
             self.LWGT_connect(md)
         if "aclr" in mea_item:
-            output_res["aclr"]=self.LTE_meas_aclr()
+            output_res["aclr"]=self.LTE_meas_aclr(md)
         if "tx_curr" in mea_item:
             m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
             output_res["tx_curr"]=self.LWGT_meas_curr(md ,m_66319D)
@@ -571,7 +573,7 @@ class handle_instr_cmw500(handle_instr):
             output_res["sensd"]=self.LTE_meas_sense(route_path="div", ul_pwr = -20)
         return output_res
 
-    def LTE_meas_aclr(self, pwr = "MAX"):
+    def LTE_meas_aclr(self, md="LTE", pwr = "MAX"):
         md = "LTE"
         test_DD = self.instr_query("CONFigure:LTE:SIGN:DMODe?").strip()
         if test_DD == "FDD":
@@ -958,7 +960,7 @@ class handle_instr_cmw500(handle_instr):
 
     def WT_meas_aclr(self, md, pwr = "MAX"):
         # self.instr_write("CONFigure:WCDMa:SIGN:UL:TPC:SET ALL1")
-        self.LWGT_set_ul_pwr(md, pwr="MAX")
+        self.LWGT_set_ul_pwr(md, pwr)
         self.instr_write("INITiate:{0}:MEAS:MEValuation".format(md))
         while self.instr_query("FETCh:{0}:MEAS:MEValuation:STATe:ALL?".format(md)).strip() != "RDY,ADJ,INV":
             time.sleep(1)
@@ -1017,26 +1019,6 @@ class handle_instr_cmw500(handle_instr):
         # TODO 可加入电源设备管理
         mea_item = [test_item_map[md][i][0] for i in config[md]['test_item']]
         self.LWGT_ch_travel(md , TEST_LIST[md], mea_item)
-
-def device_scan(cls, config_gpib_key):
-    if config_gpib_key in config:
-        instr_addr = "GPIB0::{0}::INSTR".format(config[config_gpib_key])
-    else:
-        instr_addr = None
-
-    if cls.instr_addr_check(instr_addr):
-        print("{0} check OK".format(cls.__name__))
-        print(instr_addr)
-        return instr_addr
-    else:
-        instr_addr= cls.get_gpib_addr()
-        if not instr_addr:
-            print("Cannot Find {0}".format(cls.__name__))
-            return None
-        else:
-            print("{0} find another addr OK".format(cls.__name__))
-            print(instr_addr)
-            return instr_addr
 
 
 if __name__ == '__main__':
