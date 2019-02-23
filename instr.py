@@ -73,12 +73,15 @@ class handle_instr():
     def get_gpib_addr(cls):
         devices_list = cls.get_rm_list_resource()
         for instr_addr in devices_list:
-            instr = handle_instr(instr_addr)
-            instr_info = instr.get_instr_version()
-            instr.instr_close()
-            m=cls.instr_name_p.match(instr_info)
-            if m:
-                return instr_addr
+            try:
+                instr = handle_instr(instr_addr)
+                instr_info = instr.get_instr_version()
+                instr.instr_close()
+                m=cls.instr_name_p.match(instr_info)
+                if m:
+                    return instr_addr
+            except:
+                pass
         return None
 
     @classmethod
@@ -95,6 +98,33 @@ class handle_instr():
                 return False
         else:
             return False
+
+    '''
+    gpib_addr_num int type : gpib addr
+    cls : handle_instr
+    from instr import handle_instr
+    检查 gpib地址，或者扫描gpib
+    gpib_addr_num int type : gpib addr
+    '''
+    @classmethod
+    def device_scan(cls, gpib_addr_num = None):
+        if gpib_addr_num:
+            instr_addr = "GPIB0::{0}::INSTR".format(gpib_addr_num)
+        else:
+            instr_addr = None
+        if cls.instr_addr_check(instr_addr):
+            print("{0} check OK".format(cls.__name__))
+            print(instr_addr)
+            return instr_addr
+        else:
+            instr_addr= cls.get_gpib_addr()
+            if not instr_addr:
+                print("Cannot Find {0}".format(cls.__name__))
+                return None
+            else:
+                print("{0} find another addr OK".format(cls.__name__))
+                print(instr_addr)
+                return instr_addr
 
     def instr_close(self):
         self.instr.close()

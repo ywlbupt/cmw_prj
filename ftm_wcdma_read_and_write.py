@@ -8,14 +8,13 @@ import pyperclip
 import sys, os, visa, threading, time, string
 from datetime import datetime
 from config_default import config
-from main import handle_instr_cmw500
+from instr_cmw500 import handle_instr_cmw500
 
 # from package.logHandler import LogHandler
 # import logging
 #logger = LogHandler("", level = logging.INFO)
 
 # logger.info("tetst")
-
 
 
 if __name__ == '__main__':
@@ -34,10 +33,14 @@ if __name__ == '__main__':
             print(m.get_instr_version())
             m.set_remote_display(state=True)
 
-            # READ:LTE:MEAS<i>:MEValuation:TRACe:ACLR:AVERage?
             while True:
-                res = m.instr_query("READ:LTE:MEAS:MEValuation:ACLR:AVERage?").strip().split(",")
-                res = tuple(round(float(res[i]),2) for i in [2,3,4,5,6])
+                # res = m.instr_query("FETCh:WCDMa:MEAS:MEValuation:SPECtrum:AVERage? RELative",delay =2).strip().split(",")
+                m.instr_write("INITiate:WCDMa:MEAS:MEValuation")
+                while m.instr_query("FETCh:WCDMa:MEAS:MEValuation:STATe:ALL?").strip() != "RDY,ADJ,INV":
+                    time.sleep(1)
+                res = m.instr_query("FETCh:WCDMa:MEAS:MEValuation:SPECtrum:AVERage? RELative").strip().split(",")
+
+                res = tuple(round(float(res[i]),2) for i in [2,3,15,4,5] )
                 res_str = "\t".join([str(i) for i in res])
                 pyperclip.copy(res_str)
                 x = input("press Enter to continue")

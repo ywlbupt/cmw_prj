@@ -8,3 +8,4 @@ test_data_w.txt
 *.zip
 *.xlsx
 package/log
+tags
