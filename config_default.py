@@ -9,7 +9,7 @@
 # 1,1.7,1.9
 LOSS_CONFIG = {
     "LOW" : 0.5,
-    "MID" : 0.8,
+    "MID" : 4.7,
     "HIGH" : 0.9, }
 LOSS_MATRIX =  "699000000, {loss_low}, 960000000, {loss_low},1710000000,{loss_mid},2170000000, {loss_mid},2300000000, {loss_high}, 2700000000, {loss_high}".format(
                         loss_low = LOSS_CONFIG['LOW'], loss_mid = LOSS_CONFIG['MID'], loss_high = LOSS_CONFIG['HIGH'])
@@ -96,11 +96,11 @@ lte_define_ch = (
 SENSE_PARAM = {
     "LTE" :{
     # 起始功率
-    'pwr_init' : -123,
+    'pwr_init' : -115,
     # 粗调精度
     'pwr_coarse' : 0.5,
     # 细调精度
-    'pwr_fine' : 0.1,
+    'pwr_fine' : 0.2,
     'frame_coarse' : 100,
     'frame_fine' : 200,
     'BER_THRESHOLD' : 5,

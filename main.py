@@ -25,13 +25,10 @@ if __name__ == '__main__':
             cmw_addr = "TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"])
         else:
             cmw_addr = handle_instr_cmw500.device_scan(handle_instr_cmw500 )
-        # print( device_scan(handle_instr_66319D, "gpib_addr_66319D"))
-
         if cmw_addr:
             m = handle_instr_cmw500(cmw_addr , phone)
         else:
             m = None
-
         if m:
             print(m.get_instr_version())
 

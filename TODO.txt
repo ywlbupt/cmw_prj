@@ -1,3 +1,0 @@
-1. current 稳定读值 OK
-2. current 归一化功率计算 OK
-3. FTM 非信令

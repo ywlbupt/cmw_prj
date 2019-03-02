@@ -10,6 +10,13 @@ LTE_BW_10="B100"
 LTE_BW_15="B150"
 LTE_BW_20="B200"
 
+def LTE_BW(bw_num):
+    if str(bw_num).isdigit():
+        return "B"+str(int(bw_num)*10).zfill(3)
+    else:
+        return "B014"
+
+
 ue_struct_l = namedtuple("ue_struct_l",['BAND','CH_UL','CH_DL','BW'])
 ue_struct_w = namedtuple("ue_struct_w",['BAND','CH_UL','CH_DL'])
 ue_struct_g = namedtuple("ue_struct_g",['g_BAND','g_CH'])
@@ -139,3 +146,7 @@ test_item_map = {
         5   :   ( "tx_curr",["BAND","CH","tx_cur_max","tx_cur_min", "delta"] ),
     },
 }
+
+if __name__ == "__main__":
+    print(str_ue_info_LTE.__dict__)
+    

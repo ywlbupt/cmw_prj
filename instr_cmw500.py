@@ -84,19 +84,11 @@ class handle_instr_cmw500(handle_instr):
         else:
             self.instr_write("SYSTem:DISPlay:UPDate OFF")
 
-    def set_FDCorrection(self,loss_array):
+    def set_FDCorrection(self,loss_array, md = None):
         OUTPUT_EAT, INPUT_EAT, loss_matrix = loss_array
-        # lossName = self.instr_query ("CONFigure:BASE:FDCorrection:CTABle:CATalog?")
-        # if lossName.find ("CMW_loss") != -1:
-            # self.instr_write ("CONFigure:BASE:FDCorrection:CTABle:DELete 'CMW_loss'")
-        self.instr_write("CONFigure:LTE:SIGN:RFSettings:EATTenuation:OUTPut {0}".format(OUTPUT_EAT))
-        self.instr_write("CONFigure:LTE:SIGN:RFSettings:EATTenuation:INPut {0}".format(INPUT_EAT))
-        self.instr_write("CONFigure:WCDMa:SIGN:RFSettings:EATTenuation:OUTPut {0}".format(OUTPUT_EAT))
-        self.instr_write("CONFigure:WCDMa:SIGN:RFSettings:EATTenuation:INPut {0}".format(INPUT_EAT))
-        self.instr_write("CONFigure:TDSC:SIGN:RFSettings:EATTenuation:OUTPut {0}".format(OUTPUT_EAT))
-        self.instr_write("CONFigure:TDSC:SIGN:RFSettings:EATTenuation:INPut {0}".format(INPUT_EAT))
-        self.instr_write("CONFigure:GSM:SIGN:RFSettings:EATTenuation:OUTPut {0}".format(OUTPUT_EAT))
-        self.instr_write("CONFigure:GSM:SIGN:RFSettings:EATTenuation:INPut {0}".format(INPUT_EAT))
+        if md:
+            self.instr_write("CONFigure:{0}:SIGN:RFSettings:EATTenuation:OUTPut {1}".format(md, OUTPUT_EAT))
+            self.instr_write("CONFigure:{0}:SIGN:RFSettings:EATTenuation:INPut {1}".format(md, INPUT_EAT))
 
         self.instr_write("CONFigure:BASE:FDCorrection:CTABle:DELete:ALL")
         if loss_matrix :
@@ -388,8 +380,8 @@ class handle_instr_cmw500(handle_instr):
                 print("")
         finally:
             self.LWGT_data_output(md, total_res, 
-                                  os.path.splitext(config[md]['data_save'])[0]+datetime.today().strftime("_%Y_%m_%d_%H_%M")
-                                  +os.path.splitext(config[md]['data_save'])[1])
+                os.path.splitext(config[md]['data_save'])[0]+datetime.today().strftime("_%Y_%m_%d_%H_%M")
+                +os.path.splitext(config[md]['data_save'])[1])
             print(total_res)
 
     def LWGT_set_port_route(self,md,route_path = "main"):
@@ -529,7 +521,8 @@ class handle_instr_cmw500(handle_instr):
             print("")
             if not self.LWGT_check_connection(md) and j != 2:
                 print("phone reboot")
-                self.phone_hd.adb_reboot()
+                if self.phone_hd:
+                    self.phone_hd.adb_reboot()
                 save_state = self.LWGT_get_state(md)
                 if md == "LTE":
                     self.LTE_para_configure(md, (save_state,))
@@ -593,6 +586,7 @@ class handle_instr_cmw500(handle_instr):
                     time.sleep(1)
 
     def LTE_ch_redirection(self, dest_state):
+        ''' dest_state ue_struct_l'''
         md = "LTE"
         last_state = self.LWGT_get_state(md)
         # dest_DD = "FDD" if int(dest_state.BAND[2:])<33 else "TDD"
@@ -608,7 +602,7 @@ class handle_instr_cmw500(handle_instr):
                 switch_mode = "Handover"
             else:
                 switch_mode = "Handover"
-            switch_mode = "redirection"
+            # switch_mode = "redirection"
         else:
             if self.cmw_soft_version_compare(self.soft_version[md], [3, 5, 10]):
                 # switch_mode = "ENHandover"
@@ -672,6 +666,8 @@ class handle_instr_cmw500(handle_instr):
         output_res = {}
         if not mea_item:
             mea_item = ("aclr",)
+        elif not isinstance(mea_item, list):
+            mea_item = (mea_item,)
         if not self.LWGT_check_connection(md):
             print("{md} not connected".format(md=md))
             self.LWGT_connect(md)
@@ -682,7 +678,7 @@ class handle_instr_cmw500(handle_instr):
             output_res["tx_curr"]=self.LWGT_meas_curr(md ,m_66319D)
             m_66319D.instr_close()
         if "sensm_max" in mea_item:
-            output_res["sensm_max"]=self.LTE_meas_sense(route_path="main",ul_pwr="MAX")
+            output_res["sensm_max"]=self.LTE_meas_sense(route_path="main",ul_pwr="MAX", part_rb_enable = config['LTE']['partRB_rx_Enable'])
         if "sensm_cloop" in mea_item:
             output_res["sensm_cloop"]=self.LTE_meas_sense(route_path="main",ul_pwr=-20)
         if "sensd" in mea_item:
@@ -710,7 +706,10 @@ class handle_instr_cmw500(handle_instr):
         time.sleep(1)
         return res
 
-    def LTE_meas_sense(self,route_path="main", ul_pwr="MAX"):
+    def LTE_meas_sense(self,route_path="main", ul_pwr="MAX", part_rb_enable = False):
+        '''
+        route_path : "main" or "div"
+        '''
         md = "LTE"
         self.instr_write("CONFigure:LTE:SIGN:EBLer:REPetition SING")
         self.instr_write("CONFigure:LTE:SIGN:EBLer:SCONdition NONE")
@@ -718,7 +717,7 @@ class handle_instr_cmw500(handle_instr):
         self.LWGT_set_dl_pwr(md)
         self.LWGT_set_ul_pwr(md,ul_pwr)
         state = self.LWGT_get_state(md)
-        if config['LTE']['partRB_rx_Enable']:
+        if part_rb_enable:
             cmw_bw = state.BW
             band_num = int((state.BAND)[2:])
             rb_num, rb_pos = LTE_Calc.get_band_ul_rb(band_num, cmw_bw )
@@ -729,14 +728,14 @@ class handle_instr_cmw500(handle_instr):
             self.LWGT_set_port_route(md,"div")
             time.sleep(2)
 
-        pwr, ber = self.LWGT_sense_alg(md)
+        pwr, ber = self.LWGT_sense_alg(md, alg_type = "coarse") # fine or coarse
         
         self.LWGT_set_dl_pwr(md)
         if route_path == "div":
             self.LWGT_set_port_route(md,"main")
             time.sleep(2)
 
-        if config['LTE']['partRB_rx_Enable']:
+        if part_rb_enable:
             rb_num = LTE_Calc.get_bw_to_rb(state.BW)
             rb_pos = 0
             # 恢复Full RB 状态
@@ -769,7 +768,7 @@ class handle_instr_cmw500(handle_instr):
         else: 
             raise ConnectionError
 
-    def LWGT_sense_alg(self,md):
+    def LWGT_sense_alg(self,md, alg_type = "fine"):
         pwr_init = SENSE_PARAM[md]['pwr_init']
         pwr_coarse = SENSE_PARAM[md]['pwr_coarse']
         pwr_fine = SENSE_PARAM[md]['pwr_fine']
@@ -815,8 +814,10 @@ class handle_instr_cmw500(handle_instr):
                 pwr = pwr + pwr_fine
                 pwr, ber = meas_func(md, pwr,frame=frame_fine)
                 if ber < BER_THRESHOLD:
-                    # EBL_state = "end"
-                    EBL_state = "fine_2"
+                    if alg_type == "coarse":
+                        EBL_state = "end"
+                    else:
+                        EBL_state = "fine_2"
                 else:
                     EBL_state = "pwr_back_fine_1"
             elif EBL_state == "fine_2":
@@ -1137,4 +1138,15 @@ class handle_instr_cmw500(handle_instr):
         mea_item = [test_item_map[md][i][0] for i in config[md]['test_item']]
         self.LWGT_ch_travel(md , TEST_LIST[md], mea_item)
 
+    def main_lte_setup(self,test_list):
+        '''
+        test_list : list of ue_struct_l(BAND='OB4', CH_UL=20000, CH_DL=2000, BW='B100')
+        mea_item : list of "aclr", "sensm_cloop", "sensm_max", "sensd", "tx_curr"
+        ''' 
+        md = "LTE"
+        self.set_FDCorrection(param_FDCorrection, md = md)
+        self.LTE_para_configure(md, test_list)
+        self.LWGT_connect(md)
 
+        # for band_ch in test_list:
+            # self.LTE_ch_redirection(band_ch)

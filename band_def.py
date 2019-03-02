@@ -6,9 +6,9 @@ from config_default import config
 from config_default import lte_define_ch
 from lte_band_def import LTE_Calc
 
-def new_lte_test_list(cfg, priority = 'bw'):
+def lte_test_list_build(cfg, priority = 'bw'):
     test_list=[]
-    if cfg['LTE']['usr_define']:
+    if 'usr_define' in cfg['LTE'] and cfg['LTE']['usr_define']:
         priority = "usr_define"
     bw_zip = list(zip(lte_bw_map,cfg['LTE']["bw"]))
     if priority == "band":
@@ -76,7 +76,7 @@ TEST_LIST_W = wcdma_test_list(config)
 
 TEST_LIST_T = tdsc_test_list(config)
 
-TEST_LIST_L = new_lte_test_list(config, priority = LTE_TEST_PRIORITY)
+TEST_LIST_L = lte_test_list_build(config, priority = LTE_TEST_PRIORITY)
 
 TEST_LIST = {
     "LTE" : TEST_LIST_L,
@@ -86,6 +86,6 @@ TEST_LIST = {
 }
 
 if __name__ == "__main__":
-    # for i in TEST_LIST["LTE"]:
-        # print(i)
+    for i in TEST_LIST["LTE"]:
+        print(i)
     pass

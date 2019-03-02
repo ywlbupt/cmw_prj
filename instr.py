@@ -60,7 +60,7 @@ class handle_instr():
         return m
 
     def get_instr_version(self):
-        return self.instr_query("*IDN?",delay = 5).strip()
+        return self.instr_query("*IDN?",delay = 3).strip()
 
     @classmethod
     def get_rm_list_resource(cls):
@@ -131,5 +131,6 @@ class handle_instr():
 
     def instr_rm_close(self):
         self.instr.close()
+        # session close
         self.rm.close()
 
