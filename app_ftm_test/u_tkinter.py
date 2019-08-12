@@ -25,9 +25,9 @@ class ftm_frame(tk.Frame):
         # optional "LTE" or "WCDMA"
         self.md_strVar.set("LTE")
         self.band_strVar.set("1")
-        self.ch_strVar.set("18050,18300")
+        self.ch_strVar.set("18550")
         self.bw_strVar.set("10MHz")
-        self.icq_strVar.set(" 1-10 ,34570, 35580 , 5-8")
+        self.icq_strVar.set("32444-32450")
         self.rgi_strVar.set("50-54")
 
         self.createWidgets()
@@ -72,6 +72,8 @@ class ftm_frame(tk.Frame):
         self.button_text_clear.grid(column = 3, row = 3)
 
     def display_frame(self, parent):
+        Instruction_label = tk.Label(parent, text = "enter : pause\nesc: stop")
+        Instruction_label.pack(expand = "yes", anchor = "nw")
         promt_label = tk.Label(parent, height =2, textvariable = self.promt_text)
         promt_label.pack(expand = "yes", anchor = "nw")
 
@@ -102,7 +104,7 @@ class ftm_frame(tk.Frame):
     def md_cbox_select(self, event):
         self.display_promt(self.md_strVar.get())
         self.display_res_append(self.md_strVar.get())
-        self.display_res_append(str(self.get_ftm_param()))
+        self.display_res_append(str(self.get_ui_ftm_param()))
         pass
 
     def get_ui_ftm_param(self):
@@ -148,6 +150,7 @@ class ftm_frame(tk.Frame):
     def display_res_append(self, text):
         self.res_scr["state"] = "normal"
         self.res_scr.insert(tk.END, text + "\n")
+        self.res_scr.see(tk.END)
         self.res_scr["state"] = "disabled"
 
     def res_scr_clear(self):
@@ -163,7 +166,7 @@ class OOP():
         # 窗口置顶
         self.win.wm_attributes('-topmost',1)
         # 窗口大小
-        self.win.geometry ("400x800")
+        self.win.geometry ("450x800")
         self.win.resizable(width=False, height=True)    # 设置窗口宽度不可变，高度可变
 
         self._ftm_frame = None

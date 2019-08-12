@@ -12,6 +12,8 @@ from _pyuserinput import keyboard_hook
 # with keyboard_hook(key, callback) as k:
 from u_param import _str2list
 from u_param import split_digit_alpha
+from u_param import unite_res
+from u_param import UNITE_SPEC
 from u_param import R_PARAM
 from u_param import CATCH_ORDER
 from u_param import LOSS
@@ -73,12 +75,15 @@ class ftm_test():
         # keyboard_hook toggle self._pause_flag
         if self._pause_flag.is_set():
             self._pause_flag.clear()
+            self.display_res_append("pause scan")
         else:
             self._pause_flag.set()
+            self.display_res_append("resume scan")
 
-    def callback_stop_scan(self):
-        self._pause_flag.clear()
-        self._is_runing.set()
+    def callback_stop_scan(self, event=None):
+        self._pause_flag.set()
+        self._is_runing.clear()
+        self.display_res_append("stop scan")
 
     def retrieve_ftm_param(self):
         if not self.getparam_func :
@@ -88,7 +93,7 @@ class ftm_test():
 
         for item in ['r_ch', "r_icq", "r_rgi"]:
             _r_param[item] = _str2list(_r_param[item])
-        _r_param['bw'] = split_digit_alpha()[0]
+        _r_param['bw'] = split_digit_alpha(_r_param['bw'])[0]
         print("_r_param :{0}".format(_r_param))
         return _r_param
 
@@ -109,12 +114,142 @@ class ftm_test():
         if not self.t.is_alive():
             self.display_res_append("Begin icq scan")
             _r_param = self.retrieve_ftm_param()
-            self.t = Thread(target = self._icq_scan_proc, args=(_r_param), daemon = True)
+            self.t = Thread(target = self._icq_scan_proc, args=(_r_param,), daemon = True)
             self.t.start()
 
     def _icq_scan_proc(self, r_param):
+        def _icq_scan_func():
+            for ch in r_param["r_ch"]:
+                self.click_and_typewrite(*self.coordinate_xy["b_tear_down"])
+                self.click_and_typewrite(*self.coordinate_xy["d_ch"], ch)
+                self.hd_cmw.ftm_set_ch(r_param['md'], ch)
+                for icq in r_param["r_icq"]:
+                    self.click_and_typewrite(*self.coordinate_xy["d_icq"],icq )
+                    for rgi in r_param["r_rgi"]:
+                        self.click_and_typewrite(*self.coordinate_xy["d_rgi"],rgi )
+                        self.click_and_typewrite(*self.coordinate_xy["b_radio_set"] )
+                        self.click_and_typewrite(*self.coordinate_xy["b_tx_set"] )
+                        temp = self.hd_cmw.get_aclr_ftm(r_param['md'])
+                        self.display_res_append (str([ch, icq, rgi, *temp]))
+                        _res_detail.append([ch, icq, rgi, *temp])
+                        if not self._pause_flag.is_set():
+                            self._pause_flag.wait()
+                        if not self._is_runing.is_set():
+                            return
+
+        def _data_judge(_aclr_data):
+            ''' 判断alcr 数据有效与超spec
+            return : True 有效，False INV或者超spec
+            '''
+            _md = r_param["md"]
+            for i,j in UNITE_SPEC[_md]["spec"]:
+                if abs(_aclr_data[i]) < abs(j):
+                    return False
+            return True
+
+        def _pwr_pos(_pwr,):
+            ''' spec = UNITE_SPEC['pwr_range'] '''
+            _md = r_param["md"]
+            if _pwr < UNITE_SPEC[_md]['pwr_range'][0]:
+                return "L"
+            elif _pwr > UNITE_SPEC[_md]['pwr_range'][1]: 
+                return "H"
+            else:
+                return "M"
+
+        def state_machine(_aclr_data, _rgi_present, _state_present, _rgi_anchor):
+            ''' state machine '''
+            _pwr = _aclr_data[2]
+            _md = r_param["md"]
+            if _pwr == "INV":
+                state_next = "end" 
+                rgi_next = _rgi_present
+            elif _pwr < UNITE_SPEC[_md]['pwr_range'][0] and not _data_judge(_aclr_data):
+                state_next = "end" 
+                rgi_next = _rgi_present
+            elif _state_present == "init":
+                if _pwr_pos(_pwr) == "L":
+                    state_next = "low_seek_higher"
+                    rgi_next = _rgi_present + 1
+                elif _pwr_pos(_pwr) == "H":
+                    state_next = "high_seek_lower"
+                    rgi_next = _rgi_present - 1
+                elif _pwr_pos(_pwr) == "M":
+                    state_next = "middle_seek_higher"
+                    rgi_next = _rgi_present + 1
+            elif _state_present == "low_seek_higher":
+                if _pwr_pos(_pwr) != "H":
+                    state_next = "low_seek_higher"
+                    rgi_next = _rgi_present + 1
+                elif _pwr_pos(_pwr) == "H":
+                    state_next, rgi_next = "end" , _rgi_present
+            elif _state_present == "high_seek_lower":
+                if _pwr_pos(_pwr) != "L":
+                    state_next = "high_seek_lower"
+                    rgi_next = _rgi_present - 1
+                elif _pwr_pos(_pwr) == "L":
+                    state_next, rgi_next = "end", _rgi_present
+            elif _state_present == "middle_seek_higher":
+                if _pwr_pos(_pwr) != "H":
+                    state_next = "middle_seek_higher"
+                    rgi_next = _rgi_present + 1
+                elif _pwr_pos(_pwr) == "H":
+                    state_next = "middle_seek_lower"
+                    rgi_next = _rgi_anchor-1
+            elif _state_present == "middle_seek_lower":
+                if _pwr_pos(_pwr) != "L":
+                    state_next = "middle_seek_lower"
+                    rgi_next = _rgi_present - 1
+                elif _pwr_pos(_pwr) == "L":
+                    state_next, rgi_next = "end", _rgi_present
+            return state_next, rgi_next
+
+        def _icq_scan_unite_func():
+            nonlocal _res_unite
+            nonlocal _res_detail
+            # nonlocal r_param
+            for ch in r_param["r_ch"]:
+                self.click_and_typewrite(*self.coordinate_xy["b_tear_down"])
+                self.click_and_typewrite(*self.coordinate_xy["d_ch"], ch)
+                self.click_and_typewrite(*self.coordinate_xy["b_radio_set"] )
+                self.hd_cmw.ftm_set_ch(r_param['md'], ch)
+                for icq in r_param["r_icq"]:
+                    self.click_and_typewrite(*self.coordinate_xy["d_icq"],icq )
+
+                    rgi,rgi_anchor = 50,50
+                    _res_pericq = []
+                    _md = r_param["md"]
+                    state = "init"
+                    while( rgi <= 57 and rgi >= 45 and state != "end"):
+                        self.click_and_typewrite(*self.coordinate_xy["d_rgi"],rgi )
+                        self.click_and_typewrite(*self.coordinate_xy["b_tx_set"] )
+                        aclr_data = self.hd_cmw.get_aclr_ftm(r_param['md'])
+
+                        _res_pericq.append([ch, icq, rgi, *aclr_data])
+                        self.display_res_append (str([ch, icq, rgi, *aclr_data]))
+                        _res_detail.append([ch, icq, rgi, *aclr_data])
+                        
+                        state_next,  rgi_next= state_machine(aclr_data, rgi, state, rgi_anchor)
+                        rgi, state = rgi_next, state_next
+
+                        if not self._pause_flag.is_set():
+                            self._pause_flag.wait()
+                        if not self._is_runing.is_set():
+                            return
+
+                    # 通过rgi 排序
+                    _res_pericq.sort(key = lambda r: r[2])
+                    # pwr index is 5
+                    for target_pwr in UNITE_SPEC[_md]["pwr_unite"]:
+                        u_row = unite_res(_res_pericq, 5, target_pwr)
+                        if u_row:
+                            _res_unite.append([ch, icq, *(u_row[2:])])
+                            self.display_res_append (str([ch, icq, *(u_row[2:])]))
+
+
         if len(self.coordinate_xy)==len(CATCH_ORDER):
-            _res = []
+            _res_detail = []
+            _res_unite = []
             try:
                 self.hd_cmw.set_FDCorrection(LOSS)
                 self.hd_cmw.set_remote_display(state=True)
@@ -123,35 +258,18 @@ class ftm_test():
                 keyboard_hook("esc", self.callback_stop_scan):
                     # 利用func return特性终止多重循环
                     self._is_runing.set()
-                    def _icq_scan_func():
-                        for ch in r_param["r_ch"]:
-                                self.click_and_typewrite(*self.coordinate_xy["b_tear_down"])
-                                self.click_and_typewrite(*self.coordinate_xy["d_ch"], ch)
-                                self.hd_cmw.ftm_set_ch(ch)
-                                for icq in r_param["r_icq"]:
-                                    self.click_and_typewrite(*self.coordinate_xy["d_icq"],icq )
-                                    for rgi in r_param["r_rgi"]:
-                                        self.click_and_typewrite(*self.coordinate_xy["d_rgi"],rgi )
-                                        self.click_and_typewrite(*self.coordinate_xy["b_radio_set"] )
-                                        self.click_and_typewrite(*self.coordinate_xy["b_tx_set"] )
-                                        temp = self.hd_cmw.get_aclr_ftm("LTE")
-                                        self.display_res_append (ch, icq, rgi, *temp)
-                                        _res.append(ch, icq, rgi, *temp)
-                                        if not self._pause_flag.is_set():
-                                            self._pause_flag.wait()
-                                        if not self._is_runing.is_set():
-                                            return
-                        self.display_res_append("icq scan done")
+                    # _icq_scan_func()
+                    _icq_scan_unite_func()
 
-                    _icq_scan_func()
+                    self.display_res_append("icq scan done")
 
             finally:
-                # print(_res)
-                self._data_output(_res, "ftm_scan"+ datetime.today().strftime("_%Y_%m_%d_%H_%M")+".txt")
+                self._data_output(_res_detail, "ftm_scan"+ datetime.today().strftime("_%Y_%m_%d_%H_%M")+".txt")
+                self._data_output(_res_unite, "ftm_scan_unite"+ datetime.today().strftime("_%Y_%m_%d_%H_%M")+".txt")
         else:
             self.display_promt("please anchor position first")
 
-    def _data_ouput(self, _res, fn):
+    def _data_output(self, _res, fn):
         ''' 当前路径下新建Report文件夹保存测试数据 '''
         if not os.path.exists("Report"):
             os.mkdir("Report")
@@ -162,6 +280,7 @@ class ftm_test():
 
     def _ftm_set(self):
         _r_param = self.retrieve_ftm_param()
+        self.hd_cmw.set_FDCorrection(LOSS)
         self.hd_cmw.cmw_ftm_set(_r_param)
 
 def main():

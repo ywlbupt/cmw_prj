@@ -24,25 +24,25 @@ from band_def import lte_test_list_build
 cfg_lte = {
     "LTE" :{
         ## 测试 Band
-        'band'  :   (1,),
+        'band'  :   (3,),
         # 'band'  :   (38,40,38,40),
         ## 带宽BW:   5, 10, 20
-        'bw'    :   (0,1,0),
+        'bw'    :   (1,0,0),
         ## 高中低信道
         'lmh'   :   (0,1,0),
     },
 }
 
 # unit : kHz
-def freq_expand_center(freq_center=2140000000, freq_sep=7500, bw=10000000):
+def freq_expand_center(freq_center=1842500000, freq_sep=15000, bw=1400000):
     pre_list = list(range(freq_center, freq_center-int(bw/2), -1*freq_sep ))
     pre_list.reverse()
     forward_list = range(freq_center+freq_sep, freq_center+int(bw/2), freq_sep)
     return pre_list+list(forward_list)
 
 freq_range = freq_expand_center()
-# freq_range= range(2138500000 , 2144995001, 7500)
-amp_range = [-85,]
+# freq_range= range(2138545000 ,2139430000 , 15000)
+amp_range = [-103,]
 
 def loop_sig(_sig, _cmw, sigrfamp, sigfreq, mea_item = "sensm_cloop"):
     '''

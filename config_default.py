@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+'''
+dox
+'''
 
 # Dependency:
 # pip install pyvisa
@@ -11,8 +14,10 @@ LOSS_CONFIG = {
     "LOW" : 0.5,
     "MID" : 4.7,
     "HIGH" : 0.9, }
-LOSS_MATRIX =  "699000000, {loss_low}, 960000000, {loss_low},1710000000,{loss_mid},2170000000, {loss_mid},2300000000, {loss_high}, 2700000000, {loss_high}".format(
-                        loss_low = LOSS_CONFIG['LOW'], loss_mid = LOSS_CONFIG['MID'], loss_high = LOSS_CONFIG['HIGH'])
+LOSS_MATRIX = "699000000, {loss_low}, 960000000, {loss_low},1710000000,\
+{loss_mid},2170000000, {loss_mid},2300000000, {loss_high}, 2700000000, {loss_high}".format(
+    loss_low=LOSS_CONFIG['LOW'], loss_mid=LOSS_CONFIG['MID'],
+    loss_high=LOSS_CONFIG['HIGH'])
 # 插损设置 , (Ouput, Input, Loss TAble)
 param_FDCorrection=(0, 0, LOSS_MATRIX)
 
@@ -30,7 +35,7 @@ config = {
         'partRB_rx_Enable' : False, 
         ## 测试 Band
         # 'band'  :   (1,2,3,4,5,7,8,12,13,17,18,19,20,25,26,28,30,34,38,39,40,41,),
-        'band'  :   (4,),
+        'band'  :   (2,),
         # 'band'  :   (38,40,38,40),
         ## 带宽BW:   5, 10, 20
         'bw'    :   (0,1,0),
@@ -91,12 +96,12 @@ lte_define_ch = (
     # (39,(38300, 38600, 50)),
     # (40,(38700, 39600, 50)),
     # (41,(40090, 41190, 50)),
- )
+)
 
 SENSE_PARAM = {
     "LTE" :{
     # 起始功率
-    'pwr_init' : -115,
+    'pwr_init' : -120,
     # 粗调精度
     'pwr_coarse' : 0.5,
     # 细调精度

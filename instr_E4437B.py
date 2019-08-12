@@ -48,7 +48,7 @@ class handle_instr_E4437B(handle_instr):
         '''
         self.sig_set_amp(amp_dbm)
         self.sig_set_freq(freq_str)
-        self.sig_mod_onoff(False)
+        # self.sig_mod_onoff(False)
         self.sig_rf_onoff(True)
         self.sig_wait()
 

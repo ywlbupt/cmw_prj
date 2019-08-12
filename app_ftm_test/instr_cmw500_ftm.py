@@ -55,7 +55,6 @@ class handle_instr_cmw500_common(handle_instr):
             return version_list
 
 class handle_instr_cmw500_ftm(handle_instr_cmw500_common):
-    
     def get_aclr_ftm(self, md):
         def wcdma_get_aclr_ftm():
             self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:REPetition SINGleshot")
@@ -63,7 +62,7 @@ class handle_instr_cmw500_ftm(handle_instr_cmw500_common):
             while self.instr_query("FETCh:WCDMa:MEAS:MEValuation:STATe:ALL?").strip() != "RDY,ADJ,INV":
                 time.sleep(1)
             res = self.instr_query("FETCh:WCDMa:MEAS:MEValuation:SPECtrum:AVERage? RELative").strip().split(",")
-            res = tuple(round(float(res[i]),2) for i in [2,3,15,4,5] )
+            res = tuple("INV" if res[i]=="INV" else round(float(res[i]),2) for i in [2,3,15,4,5] )
             return res
         def lte_get_aclr_ftm():
             self.instr_write ("CONFigure:LTE:MEAS:MEValuation:REPetition SINGleshot")
@@ -71,7 +70,7 @@ class handle_instr_cmw500_ftm(handle_instr_cmw500_common):
             while self.instr_query("FETCh:LTE:MEAS:MEValuation:STATe:ALL?").strip() != "RDY,ADJ,INV":
                 time.sleep(1)
             res = self.instr_query("FETCh:LTE:MEAS:MEValuation:ACLR:AVERage?").strip().split(",")
-            res = tuple(round(float(res[i]),2) for i in [2,3,4,5,6] )
+            res = tuple("INV" if res[i]=="INV" else round(float(res[i]),2) for i in [2,3,4,5,6] )
             # self.instr_write("ABORt:LTE:MEAS:MEValuation")
             return res
         if md == "WCDMA":
@@ -79,14 +78,14 @@ class handle_instr_cmw500_ftm(handle_instr_cmw500_common):
         elif md == "LTE":
             return lte_get_aclr_ftm()
 
-    def ftm_set_ch(self, _r_param):
-        self.instr_write('CONFigure:{0}:MEAS:RFSettings:FREQuency {1}CH'.format(_r_param['md'],_r_param['ch']))
+    def ftm_set_ch(self, md_str, ch_num):
+        self.instr_write('CONFigure:{0}:MEAS:RFSettings:FREQuency {1}CH'.format( md_str, ch_num))
         pass
 
     # def ftm_setting_of_lte(self, band_num, ch_num, bw_num):
     def cmw_ftm_set(self, _r_param):
         band_num = _r_param["band"]
-        ch_num = _r_param["ch"]
+        ch_num = _r_param["r_ch"][0]
         bw_num = _r_param["bw"] # bw : int num 10
         if _r_param["md"] == "LTE":
             test_dd = "FDD" if int(band_num)<33 else "TDD"
@@ -103,23 +102,23 @@ class handle_instr_cmw500_ftm(handle_instr_cmw500_common):
             self.instr_write("CONFigure:LTE:MEAS:MEValuation:MOEXception ON")
             self.instr_write("CONFigure:LTE:MEAS:MEValuation:REPetition SINGleshot")
         elif _r_param["md"] == "WCDMA":
-            PMwrite("ROUTe:WCDMa:MEAS:SCENario:SALone RF1C, RX1")
-            PMwrite("CONFigure:WCDMa:MEAS:BAND OB{0}".format(band_num))
-            PMwrite("CONFigure:WCDMa:MEAS:RFSettings:FREQuency {0} CH".format(ch_num))
-            PMwrite("CONFigure:WCDMa:MEAS:MEValuation:MOEXception ON")
-            PMwrite("TRIGger:WCDMa:MEAS:MEValuation:SOURce 'Free Run (Fast Sync)'")
-            PMwrite("CONFigure:WCDMA:MEAS:RFSettings:ENPower 24")
-            PMwrite("CONFigure:WCDMA:MEAS:RFSettings:UMARgin 12") 
-            PMwrite("CONFigure:WCDMa:MEAS:MEValuation:SCOunt:MODulation 10")
-            PMwrite("CONFigure:WCDMa:MEAS:MEValuation:SCOunt:SPECtrum 10")
-            PMwrite("CONFigure:WCDMa:MEAS:MEValuation:REPetition SINGleshot")
+            self.instr_write("ROUTe:WCDMa:MEAS:SCENario:SALone RF1C, RX1")
+            self.instr_write("CONFigure:WCDMa:MEAS:BAND OB{0}".format(band_num))
+            self.instr_write("CONFigure:WCDMa:MEAS:RFSettings:FREQuency {0} CH".format(ch_num))
+            self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:MOEXception ON")
+            self.instr_write("TRIGger:WCDMa:MEAS:MEValuation:SOURce 'Free Run (Fast Sync)'")
+            self.instr_write("CONFigure:WCDMA:MEAS:RFSettings:ENPower 24")
+            self.instr_write("CONFigure:WCDMA:MEAS:RFSettings:UMARgin 12") 
+            self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:SCOunt:MODulation 10")
+            self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:SCOunt:SPECtrum 10")
+            self.instr_write("CONFigure:WCDMa:MEAS:MEValuation:REPetition SINGleshot")
             pass
         
 
 def Initial_run(gpib_addr = None):
-        cmw_addr = handle_instr_cmw500_ftm.device_scan(gpib_addr)
-        hd_cmw = handle_instr_cmw500_ftm(cmw_addr)
-        return hd_cmw
+    cmw_addr = handle_instr_cmw500_ftm.device_scan(gpib_addr)
+    hd_cmw = handle_instr_cmw500_ftm(cmw_addr)
+    return hd_cmw
 
 if __name__ == "__main__":
     # cmw_addr = "TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"])

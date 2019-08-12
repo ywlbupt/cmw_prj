@@ -88,7 +88,8 @@ g_19  = ("G19",  [512,661,810])
 t_f = ("B1", [9404, 9500, 9596]) # B39 1900
 t_a = ("B2", [10054, 10087, 10121]) # B34 2100
 
-lte_bw_map = (LTE_BW_5,LTE_BW_10,LTE_BW_20)
+# lte_bw_map = (LTE_BW_5,LTE_BW_10,LTE_BW_20)
+lte_bw_map = (LTE_BW_1P4,LTE_BW_10,LTE_BW_20)
 
 standard_map = {
     1   :   "LTE",

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, os, visa, threading, time, string
-from datetime import datetime
+import sys, os, visa, threading, time
+import string
 
 # instr 为 visa.ResourceManger() Type
 # if "dev_ip" in config:
@@ -39,7 +39,7 @@ class handle_instr():
     def __init__(self, instr_socall_addr):
         # instr_socall_addr : gpib or tcpip format addr
         self.rm = visa.ResourceManager()
-        self.instr=self.rm.open_resource(instr_socall_addr)
+        self.instr = self.rm.open_resource(instr_socall_addr)
 
     def instr_write(self, *args, **kwargs):
         try:
