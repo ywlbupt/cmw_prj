@@ -79,7 +79,8 @@ bandLteTdd = ["OB38", "OB39", "OB40", "OB41", "OB34"]
 bandLteTdd = ["OB38", "OB40"] 
 
 bandLteFdd_CULCA = ["OB3", "OB7"]
-bandLteTdd_CULCA = ["OB38", "OB40", "OB41", "OB39"]
+# bandLteTdd_CULCA = ["OB38", "OB40", "OB41", "OB39"]
+bandLteTdd_CULCA = [ "OB41", ]
 
 bandWCDMA = ["OB1", "OB2", "OB4", "OB5", "OB8"]
 bandWCDMA = ["OB4", "OB5", "OB8"]

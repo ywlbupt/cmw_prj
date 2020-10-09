@@ -1,0 +1,12 @@
+
+*******        Test start        *******
+band channel  txpwr  UTRA2  UTRA1  E-UTRA1 E-UTRA1 UTRA1  UTRA2 RSRP   RSRQ
+OB41  40140   23.47  50.51  49.03  41.01   41.95   50.32  51.57
+OB41  40641   23.57  50.60  49.57  41.20   42.39   50.98  51.78
+OB41  40942   23.53  50.79  49.91  41.38   42.76   51.57  52.47
+Test finished at 2020-05-07 23:05:36
+
+
+*******        Test start        *******
+band channel  txpwr  UTRA2  UTRA1  E-UTRA1 E-UTRA1 UTRA1  UTRA2 RSRP   RSRQ
+OB41  40140   23.48  50.42  49.10  41.07   42.12   50.44  51.70

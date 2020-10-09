@@ -16,8 +16,9 @@ from MACRO_DEFINE import *
 from instr_66319D import handle_instr_66319D
 
 from config_default import param_FDCorrection
-from config_default import config
+from config_default import config as CONFIG
 from config_default import SENSE_PARAM
+from config_default import PRJ_PORT
 from adb import adb
 
 # import logging
@@ -95,6 +96,12 @@ class handle_instr_cmw500(handle_instr):
             self.instr_write("CONFigure:BASE:FDCorrection:CTABle:CREate 'CMW_loss', {loss_matrix}".format(loss_matrix=loss_matrix))
             self.instr_write ("CONFigure:FDCorrection:ACTivate RF1C, 'CMW_loss', RXTX, RF1")
             self.instr_write ("CONFigure:FDCorrection:ACTivate RF1O, 'CMW_loss', RXTX, RF1")
+            self.instr_write ("CONFigure:FDCorrection:ACTivate RF2C, 'CMW_loss', RXTX, RF1")
+            try:
+                self.instr_write ("CONFigure:FDCorrection:ACTivate RF3C, 'CMW_loss', RXTX, RF2")
+                self.instr_write ("CONFigure:FDCorrection:ACTivate RF3O, 'CMW_loss', RXTX, RF2")
+            except:
+                pass
 
     def __LTE_get_fdd_or_tdd(self, dd_int):
         if isinstance (dd_int, str):
@@ -120,8 +127,11 @@ class handle_instr_cmw500(handle_instr):
             self.instr_write ("CONFigure:LTE:SIGN:PCC:BAND {band}".format(band=test_list[0].BAND))
             self.instr_write ("CONFigure:LTE:SIGN:RFSettings:CHANnel:UL {0}".format(test_list[0].CH_UL))
             self.instr_write ("CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(test_list[0].BW))
-            # bw_str = "CONFigure:LTE:SIGN:CELL:BANDwidth:DL {0}".format(dest_state.BW)
+
+        self.LWGT_set_port_route(md,test_list[0].BAND[2:],route_path = "main")
+
         self.instr_write ("ROUTe:LTE:MEAS:SCENario:CSPath 'LTE Sig1'")
+
 
         self.instr_write ("SOURce:LTE:SIGN:CELL:STATe ON")
 
@@ -163,7 +173,7 @@ class handle_instr_cmw500(handle_instr):
         mea_len = 10
         # test_status = ["MAX", "MIN"]
         test_pwr_status = {
-            "LTE" : [10, "MIN"],
+            "LTE" : [22, "MIN"],
             "WCDMA" : [23, "MIN"],
             "GSM" : ["MAX", "MIN"],
             "TDSC" : [23, "MIN"],
@@ -369,7 +379,7 @@ class handle_instr_cmw500(handle_instr):
                         break
                     except ConnectionError as e:
                         if not self.LWGT_check_connection(md):
-                            self.LWGT_set_port_route(md,"main")
+                            self.LWGT_set_port_route(md, dest_state.BAND[2:], "main")
                             self.LWGT_set_dl_pwr(md)
                             self.LWGT_disconnect_off(md, state_on=True)
                             self.LWGT_connect(md)
@@ -380,18 +390,23 @@ class handle_instr_cmw500(handle_instr):
                 print("")
         finally:
             self.LWGT_data_output(md, total_res, 
-                os.path.splitext(config[md]['data_save'])[0]+datetime.today().strftime("_%Y_%m_%d_%H_%M")
-                +os.path.splitext(config[md]['data_save'])[1])
+                os.path.splitext(CONFIG[md]['data_save'])[0]+datetime.today().strftime("_%Y_%m_%d_%H_%M")
+                +os.path.splitext(CONFIG[md]['data_save'])[1])
             print(total_res)
 
-    def LWGT_set_port_route(self,md,route_path = "main"):
-        route_m = "RF1C,RX1,RF1C,TX1"
-        route_d = "RF1C,RX1,RF1O,TX1"
+    def LWGT_set_port_route(self,md, band_num,route_path = "main"):
+        if int(band_num) in PRJ_PORT:
+            _port = PRJ_PORT[int(band_num)]
+        else:
+            _port = PRJ_PORT['default']
+        _str_port_main = _port[0]+","+"RX"+_port[1]+","+_port[0]+","+"TX"+_port[1]
+        _str_port_div = _port[0]+","+"RX"+_port[1]+","+_port[2]+","+"TX"+_port[3]
+
         route = {
-            "main"  :   route_m,
-            "div"   :   route_d,
+            "main"  :   _str_port_main,
+            "div"   :   _str_port_div,
         }
-        # TODO
+        print(route[route_path])
         self.instr_write("ROUTe:{md}:SIGN:SCENario:SCELl {route}".format(
             md=md, route=route[route_path]))
 
@@ -500,11 +515,11 @@ class handle_instr_cmw500(handle_instr):
                         break
                     time.sleep(2)
                 elif md == "GSM":
-                    if config['GSM']['WITHSIM']:
+                    if CONFIG['GSM']['WITHSIM']:
                         res_cs = self.instr_query("FETCh:GSM:SIGN:CSWitched:STATe?").strip()
                         print("\r{0:<5} ".format(res_cs),end="")
                         print("Connecting phone, {0}".format(i),end="")
-                        if config['GSM']['call_type']:
+                        if CONFIG['GSM']['call_type']:
                             if res_cs == "SYNC":
                                 self.instr_write("CALL:GSM:SIGN:CSWitched:ACTion CONNect")
                             elif res_cs == "ALER":
@@ -605,8 +620,8 @@ class handle_instr_cmw500(handle_instr):
             # switch_mode = "redirection"
         else:
             if self.cmw_soft_version_compare(self.soft_version[md], [3, 5, 10]):
-                # switch_mode = "ENHandover"
-                switch_mode = "ON_And_OFF"
+                switch_mode = "ENHandover"
+                # switch_mode = "ON_And_OFF"
             else :
                 print("This devices isn't support ENHanced Handover")
                 print("Try reset and Reconnect")
@@ -614,6 +629,9 @@ class handle_instr_cmw500(handle_instr):
                 switch_mode = "ON_And_OFF"
 
         print("Try {sw} to band {st.BAND}, channel ul {st.CH_UL},channel dl {st.CH_DL}, bw {st.BW}".format(sw=switch_mode,st=dest_state))
+
+        self.LWGT_set_port_route(md,dest_state.BAND[2:],route_path = "main")
+
         if switch_mode == "redirection":
             self.LWGT_set_dl_pwr(md="LTE", pwr=-80)
             band_str = "CONFigure:LTE:SIGN:PCC:BAND {0}".format(dest_state.BAND)
@@ -653,6 +671,7 @@ class handle_instr_cmw500(handle_instr):
                 break
             time.sleep(1)
         if not self.LWGT_check_connection(md="LTE"):
+            # self.LTE_para_configure(md, (dest_state,))
             self.LWGT_connect(md="LTE")
 
         present_state = self.LWGT_get_state(md)
@@ -674,11 +693,11 @@ class handle_instr_cmw500(handle_instr):
         if "aclr" in mea_item:
             output_res["aclr"]=self.LTE_meas_aclr(md)
         if "tx_curr" in mea_item:
-            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
+            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(CONFIG['gpib_addr_66319D']))
             output_res["tx_curr"]=self.LWGT_meas_curr(md ,m_66319D)
             m_66319D.instr_close()
         if "sensm_max" in mea_item:
-            output_res["sensm_max"]=self.LTE_meas_sense(route_path="main",ul_pwr="MAX", part_rb_enable = config['LTE']['partRB_rx_Enable'])
+            output_res["sensm_max"]=self.LTE_meas_sense(route_path="main",ul_pwr="MAX", part_rb_enable = CONFIG['LTE']['partRB_rx_Enable'])
         if "sensm_cloop" in mea_item:
             output_res["sensm_cloop"]=self.LTE_meas_sense(route_path="main",ul_pwr=-20)
         if "sensd" in mea_item:
@@ -725,14 +744,14 @@ class handle_instr_cmw500(handle_instr):
                 self.LTE_set_ul_RB(rb_num, rb_pos)
 
         if route_path == "div":
-            self.LWGT_set_port_route(md,"div")
+            self.LWGT_set_port_route(md,state.BAND[2:],"div")
             time.sleep(2)
 
         pwr, ber = self.LWGT_sense_alg(md, alg_type = "coarse") # fine or coarse
         
         self.LWGT_set_dl_pwr(md)
         if route_path == "div":
-            self.LWGT_set_port_route(md,"main")
+            self.LWGT_set_port_route(md,state.BAND[2:],"main")
             time.sleep(2)
 
         if part_rb_enable:
@@ -840,15 +859,15 @@ class handle_instr_cmw500(handle_instr):
         print("")
         if md == "LTE":
             pwr = float(self.instr_query("SENSe:LTE:SIGN:DL:FCPower?"))
-            if config[md]['usr_define']:
+            if CONFIG[md]['usr_define']:
                 pwr = self.LWG_get_RSRP(md)[1]
                 print("RSRP:"+str(self.LWG_get_RSRP(md)))
         return (round(pwr,1), round(ber,2))
 
     def LWGT_data_output(self, md, output_result, fp):
-        if not os.path.exists(config["Report_file"]):
-            os.mkdir(config["Report_file"])
-        with open(os.path.join(config["Report_file"], fp),'w') as f:
+        if not os.path.exists(CONFIG["Report_file"]):
+            os.mkdir(CONFIG["Report_file"])
+        with open(os.path.join(CONFIG["Report_file"], fp),'w') as f:
             ue_info = eval("str_ue_info_"+md)
             for i,t in test_item_map[md].items():
                 if t[0] in output_result:
@@ -892,7 +911,7 @@ class handle_instr_cmw500(handle_instr):
         if "switch_spetrum" in mea_item:
             output_res["switch_spetrum"]=self.GSM_meas_ssw()
         if "tx_curr" in mea_item:
-            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
+            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(CONFIG['gpib_addr_66319D']))
             output_res["tx_curr"]=self.LWGT_meas_curr(md, m_66319D)
             m_66319D.instr_close()
         if "sensm" in mea_item:
@@ -900,7 +919,7 @@ class handle_instr_cmw500(handle_instr):
         if "sensd" in mea_item:
             ue_info_g = self.LWGT_get_state(md)
             # TODO
-            if ue_info_g.g_BAND in [gsm_band_map[i][0] for i in config['GSM']['div-support']]:
+            if ue_info_g.g_BAND in [gsm_band_map[i][0] for i in CONFIG['GSM']['div-support']]:
                 output_res["sensd"]=self.GSM_meas_sense(route_path="div")
         return output_res
 
@@ -966,7 +985,7 @@ class handle_instr_cmw500(handle_instr):
             self.instr_write("CONFigure:GSM:SIGN:RFSettings:CHANnel:TCH {ch}".format(ch=dest_state.g_CH))
             time.sleep(2)
         else:
-            if last_state.g_BAND != "G19" and dest_state.g_BAND != "G19" and config['GSM']['switch_type']:
+            if last_state.g_BAND != "G19" and dest_state.g_BAND != "G19" and CONFIG['GSM']['switch_type']:
                 self.instr_write("PREPare:GSM:SIGN:HANDover:DESTination 'GSM Sig1'")
                 self.instr_write("PREPare:GSM:SIGN:HANDover:TARGet {band}".format(band = dest_state.g_BAND))
                 self.instr_write("PREPare:GSM:SIGN:HANDover:CHANnel:TCH {ch}".format(ch = dest_state.g_CH))
@@ -1025,7 +1044,7 @@ class handle_instr_cmw500(handle_instr):
         else:
             print("------------redirection error---------------------------")
 
-    def WT_para_configure(self, md, test_list = None):
+    def WT_para_configure(self, md, test_list):
         str_sig1 = {"WCDMA" : "WCDMA Sig1", "TDSC": "TD-SCDMA Sig1"}
         if self.LWGT_check_connection(md):
             # self.TDSC_ch_redirection(test_list[0])
@@ -1038,8 +1057,12 @@ class handle_instr_cmw500(handle_instr):
                 time.sleep(1)
             self.instr_reset_cmw()
             self.set_FDCorrection(param_FDCorrection)
-            self.instr_write("CONFigure:{0}:SIGN:RFSettings:BAND {1}".format(md, test_list[0].BAND))
+            if md == "WCDMA":
+                self.instr_write("CONFigure:{0}:SIGN:BAND {1}".format(md, test_list[0].BAND))
+            else:
+                self.instr_write("CONFigure:{0}:SIGN:RFSettings:BAND {1}".format(md, test_list[0].BAND))
             self.instr_write("CONFigure:{0}:SIGN:RFSettings:CHANnel {1}".format(md, test_list[0].CH_UL))
+            print("ssadf",test_list[0])
             # TODO
             self.instr_write("CONFigure:{0}:SIGN:CONNection:TMODe:RMC:TMODe MODE2".format(md))
         self.instr_write("ROUTe:{0}:MEAS:SCENario:CSPath '{1}'".format(md, str_sig1[md]))
@@ -1062,7 +1085,7 @@ class handle_instr_cmw500(handle_instr):
         if "aclr" in mea_item:
             output_res["aclr"] = self.WT_meas_aclr(md)
         if "tx_curr" in mea_item:
-            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(config['gpib_addr_66319D']))
+            m_66319D = handle_instr_66319D("GPIB::{0}::INSTR".format(CONFIG['gpib_addr_66319D']))
             output_res["tx_curr"]=self.LWGT_meas_curr(md, m_66319D)
             m_66319D.instr_close()
         if "sensm_max" in mea_item:
@@ -1072,7 +1095,7 @@ class handle_instr_cmw500(handle_instr):
         if "sensd" in mea_item:
             ue_info = self.LWGT_get_state(md)
             # TODO
-            if ue_info.BAND in [wt_band_map[i][0] for i in config[md].get("div-support", ())]:
+            if ue_info.BAND in [wt_band_map[i][0] for i in CONFIG[md].get("div-support", ())]:
                 output_res["sensd"] = self.WT_meas_sense(md,route_path="div")
         return output_res
 
@@ -1135,7 +1158,7 @@ class handle_instr_cmw500(handle_instr):
         getattr(self,MD_MAP[md]+"_para_configure")(md, TEST_LIST[md])
         self.LWGT_connect(md)
         # TODO 可加入电源设备管理
-        mea_item = [test_item_map[md][i][0] for i in config[md]['test_item']]
+        mea_item = [test_item_map[md][i][0] for i in CONFIG[md]['test_item']]
         self.LWGT_ch_travel(md , TEST_LIST[md], mea_item)
 
     def main_lte_setup(self,test_list):

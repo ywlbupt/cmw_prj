@@ -23,6 +23,8 @@ if __name__ == '__main__':
 
         if "ip_cmw500" in config:
             cmw_addr = "TCPIP0::{0}::inst0::INSTR".format(config["ip_cmw500"])
+        elif "gpib_cmw500" in config:
+            cmw_addr = "GPIB0::{0}::INSTR".format(config["gpib_cmw500"])
         else:
             cmw_addr = handle_instr_cmw500.device_scan(handle_instr_cmw500 )
         if cmw_addr:
